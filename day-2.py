@@ -9,10 +9,10 @@ if __name__ == "__main__":
 		opponent = ord(d[0]) - 65 	# map A, B, C to 0, 1, 2
 		me = ord(d[2]) - 88					# map X, Y, Z to 0, 1, 2
 		total += me + 1							# points from the chosen rock, paper, or scissors
-		match opponent - me:
+		match (opponent - me) % 3:
 			case 0: total += 3
-			case -1 | 2: total += 6
-			case -2 | 1: total += 0		# explicit
+			case 1: total += 0				# explicit
+			case 2: total += 6
 	print(total)
 
 	# part 2
