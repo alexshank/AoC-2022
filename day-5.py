@@ -3,30 +3,25 @@ import copy
 
 
 # returns list of lists (treat inner lists as stacks with append() and pop())
-def parse_stacks_from_picture(picture):
-	# could compute from input, but eh...
-	num_stacks = 9
-	space_indices = [3, 7, 11, 15, 19, 23, 27, 31]
-
+def parse_stacks_from_picture(picture, stack_count):
 	# remove known spaces and brackets, convert 3 consecutive spaces into arbitrary "not present" symbol
 	cleaned_lines = []
+	space_indices = [3 + 4 * i for i in range(stack_count - 1)]
 	for d in picture:
 		temp = [x for i, x in enumerate(d) if i not in space_indices]
 		temp = ''.join(temp).replace('   ', '-').replace('[', '').replace(']', '')
 		cleaned_lines.append(temp)
 
 	# we'll add the crates to the stacks in FILO order
-	cleaned_lines.reverse() 
-	stacks = [[] for _ in range(num_stacks)]
-	for cleaned_line in cleaned_lines:
-		for i in range(num_stacks):
-			if cleaned_line[i] != '-':
-				stacks[i].append(cleaned_line[i])
+	stacks = [[] for _ in range(stack_count)]
+	for cleaned_line in reversed(cleaned_lines):
+		for i in range(stack_count):
+			if cleaned_line[i] != '-': stacks[i].append(cleaned_line[i])
 
 	return stacks 
 
 
-# move crates according to new or older models' functionality
+# move crates according to new or older functionality
 def move_crates(stacks, triples, is_crate_mover_9001 = False):
 	for triple in triples:
 		temp_list = []
@@ -38,13 +33,14 @@ def move_crates(stacks, triples, is_crate_mover_9001 = False):
 
 
 if __name__ == "__main__":
-	# split input into two key parts
+	# split input into key parts
 	data = load_data("day-5-input.txt")
 	picture = data[:8]
+	stack_count = int(data[8].replace(' ', '')[-1])
 	movements = data[10:]
 
 	# initialize stack data types for the literal crate stacks
-	stacks = parse_stacks_from_picture(picture)
+	stacks = parse_stacks_from_picture(picture, stack_count)
 
 	# parse list of movements into triples: (count, from_index, to_index)
 	triples = []
