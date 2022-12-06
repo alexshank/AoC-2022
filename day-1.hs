@@ -2,7 +2,7 @@ import System.IO
 import Data.List
 
 main = do
-  inputData <- readFile "day-1-input.txt"
+  inputData <- readFile "inputs/day-1-input.txt"
   let inputLines = lines inputData
 
   -- create list of tuples containing sublist ranges (add boundary indices)
