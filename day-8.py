@@ -2,6 +2,8 @@ from helpers import load_data
 from functools import reduce
 from operator import mul
 
+# NOTE: Was trying to abuse higher-order functions. Obscure code below.
+
 # return trees to the left, right, above, below
 def get_views(data, h, w):
 	row, col = data[h], [row[w] for row in data]
