@@ -1,40 +1,38 @@
 import java.io.File
 import java.util.LinkedList
 
-// data classes give us proper equality checks for free
-data class Coord(val x: Int, val y: Int)
-
 fun main() {
     // get input grid and dimensions
     val grid: List<List<Int>> = parseInput(System.getProperty("user.dir") + "/inputs/day-12-input.txt")
-    val m: Int = grid.size
-    val n: Int = grid[0].size
+    val y_max: Int = grid.size
+    val x_max: Int = grid[0].size
 
     // pad around grid so we can ignore edge conditions
-    val integers: List<List<Int>> = grid.map { listOf(1000) + it + listOf(1000) }
-    val padded: List<List<Int>> = listOf(List(n + 2) { 1000 }) + integers + listOf(List(n + 2) { 1000 })
+    val paddingRow = List(x_max) { 1000 }
+    val paddedGrid: List<List<Int>> =
+        (listOf(paddingRow) + grid + listOf(paddingRow)).map { listOf(1000) + it + listOf(1000) }
 
     val start: Coord = Coord(20 + 1, 0 + 1) // found from the cursor position in my IDE :)
     val end: Coord = Coord(20 + 1, 112 + 1)
 
-    // part 1
-    println(breadthFirstSearch(padded, start, end)!!.size - 1)
+    // part 1 (we know !! is safe here)
+    println(breadthFirstSearch(paddedGrid, start, end)!!.size - 1)
 
     // part 2
     val results = mutableListOf<List<Coord>>()
-    for (j in 0 until m) {
-        for (i in 0 until n) {
-            if (grid.get(j).get(i) == 'a'.code) {
-                val dist = breadthFirstSearch(padded, Coord(j + 1, i + 1), end)
-                dist?.let { results.add(it) }
+    for (y in 0 until y_max) {
+        for (x in 0 until x_max) {
+            if (grid[y][x] == 'a'.code) {
+                val shortestPath = breadthFirstSearch(paddedGrid, Coord(y + 1, x + 1), end)
+                shortestPath?.let { results.add(it) }
             }
         }
     }
     println(results.map { it.size - 1 }.min())
 }
 
-// returns a shortest path to the desired coord, or nothing if no path exists
-fun breadthFirstSearch(padded: List<List<Int>>, start: Coord, end: Coord): List<Coord>? {
+// returns a shortest path to the desired coord, or null if no path exists
+private fun breadthFirstSearch(paddedGrid: List<List<Int>>, start: Coord, end: Coord): List<Coord>? {
     val seen = mutableSetOf<Coord>()
     val queue = LinkedList<List<Coord>>()
     queue.add(listOf<Coord>(start))
@@ -45,13 +43,8 @@ fun breadthFirstSearch(padded: List<List<Int>>, start: Coord, end: Coord): List<
         
         if (current == end) { return currentPath }
 
-        listOf(
-            Coord(current.x - 1, current.y),
-            Coord(current.x + 1, current.y),
-            Coord(current.x, current.y - 1),
-            Coord(current.x, current.y + 1)
-        ).filter {
-            !seen.contains(it) && current.canClimbTo(padded, it)
+        current.candidateList().filter {
+            !seen.contains(it) && current.canClimbTo(paddedGrid, it)
         }.forEach {
             seen.add(it)
             queue.add(currentPath + listOf(it))
@@ -61,15 +54,24 @@ fun breadthFirstSearch(padded: List<List<Int>>, start: Coord, end: Coord): List<
     return null
 }
 
-fun Coord.canClimbTo(padded: List<List<Int>>, destination: Coord): Boolean =
-    padded.get(this.x).get(this.y) + 1 >= padded.get(destination.x).get(destination.y)
+// data classes give us proper equality checks for free
+private data class Coord(val x: Int, val y: Int)
 
-// TODO we can't find the indices of S and E if we immediately map to ints
-fun parseInput(fileName: String): List<List<Int>> = File(fileName).readLines().map {
+private fun Coord.candidateList(): List<Coord> = listOf(
+        Coord(this.x - 1, this.y),
+        Coord(this.x + 1, this.y),
+        Coord(this.x, this.y - 1),
+        Coord(this.x, this.y + 1)
+    )
+
+private fun Coord.canClimbTo(paddedGrid: List<List<Int>>, destination: Coord): Boolean =
+    paddedGrid[this.x][this.y] + 1 >= paddedGrid[destination.x][destination.y]
+
+private fun parseInput(fileName: String): List<List<Int>> = File(fileName).readLines().map {
     line -> line.map { it -> characterToElevation(it) }
 }
 
-fun characterToElevation(c: Char): Int =
+private fun characterToElevation(c: Char): Int =
     when (c) {
         'S' -> 'a'.code
         'E' -> 'z'.code
