@@ -29,7 +29,7 @@ def move_rock(rock_locations, movement):
 	return result
 
 # TODO or side of rock!
-def rock_hit_wall(rock_locations, rock_pile):
+def rock_hit_wall_or_side_of_rock(rock_locations, rock_pile):
 	for location in rock_locations:
 		if location.real == -1 or location.real == CHAMBER_WIDTH or location in rock_pile:
 			return True
@@ -64,15 +64,12 @@ if __name__ == "__main__":
 	updated_falling_rock = set()	# we move the falling rock, then check if it's in a valid position
 
 
-	# updated_falling_rock = move_rock(falling_rock, complex(0, -1))
 	rock_definition_index = 0
 	wind_blow_index = 0
 	stopped_rock_count = 0
 
 	y_distance_offset = 0
 	Y_DISTANCE_THRESHOLD = 500
-
-	# part 1 (answer: 3127)
 
 	wind_movements = []
 	for wind in wind_blows:
@@ -82,6 +79,8 @@ if __name__ == "__main__":
 			case '>':
 				movement = complex(1, 0)
 		wind_movements.append(movement)
+
+	# part 1 (answer: 3127)
 
 	# 1000000000000
 	# 2022 
@@ -106,7 +105,7 @@ if __name__ == "__main__":
 
 			# check wall conditions
 			updated_falling_rock = move_rock(falling_rock, movement)
-			if not rock_hit_wall(updated_falling_rock, rock_pile):
+			if not rock_hit_wall_or_side_of_rock(updated_falling_rock, rock_pile):
 				falling_rock = updated_falling_rock
 
 			# move down 1
@@ -144,3 +143,5 @@ if __name__ == "__main__":
 	# part 2 (answer: )
 	print(y_distance_offset + pile_height + 1)
 
+	# TODO changing to matrix (or dictionary with complex number keys)
+	# TODO could give constant time access and waaay fewer looping
