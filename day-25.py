@@ -14,17 +14,16 @@ def increment_snafu(old_snafu):
 			else:
 				return increment_snafu(old_snafu[:-1]) + "="
 		case '=':
-			return old_snafu[-1] + "-"
+			return old_snafu[:-1] + "-"
 		case '-':
-			return old_snafu[-1] + "0"
+			return old_snafu[:-1] + "0"
 		case '0':
-			return old_snafu[-1] + "1"
+			return old_snafu[:-1] + "1"
 		case '1':
-			return old_snafu[-1] + "2"
+			return old_snafu[:-1] + "2"
 
 if __name__ == "__main__":
 	data = load_data("day-25-input.txt")
-	print(data)
 
 	total = 0
 	for d in data:
@@ -35,9 +34,12 @@ if __name__ == "__main__":
 		total += sub_sum
 	print(total)
 
-	temp = "0"
-	for i in range(10):
-		print(temp := increment_snafu(temp))
+	# temp = "0"
+	# for i in range(total):
+	# 	temp = increment_snafu(temp)
+	# 	if i % 10_000 == 0:
+	# 		print(temp)
+	# print(temp)
 
 
 
