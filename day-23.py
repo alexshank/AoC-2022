@@ -27,6 +27,7 @@ def print_board(elves):
 if __name__ == "__main__":
 	data = load_data("day-23-input.txt")
 
+	# TODO can we re-use common "board looking input" logic?
 	row_count = len(data)
 	col_count = len(data[0])
 	elves = set()
