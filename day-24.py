@@ -7,7 +7,6 @@ def print_board(squares, x_count, y_count, traveler):
 			if complex(x, y) == traveler:
 				print('T', end='')
 			else:
-				# TODO hanlde overlaps
 				if len(squares[complex(x, y)]) == 1:
 					print(squares[complex(x, y)][0], end='')
 				elif len(squares[complex(x, y)]) == 0:
@@ -50,12 +49,9 @@ def possible_traveler_squares(updated_squares, traveler, destination, board_widt
 				result.append(potential_square)
 	return result
 
-def bfs(blizzards, traveler, destination, board_width, board_height):
-
-	blizzard_cache = {0: blizzards}
-
+def bfs(blizzard_cache, traveler, destination, board_width, board_height, start_time):
 	# our nodes / states are a given position at a given time
-	queue = [(traveler, 0)]
+	queue = [(traveler, start_time)]
 	seen_states = set()
 	
 	while len(queue) > 0:
@@ -104,6 +100,15 @@ if __name__ == "__main__":
 	x_count = col_count - 2
 	y_count = row_count - 2
 
-	print(bfs(squares, traveler, destination, x_count, y_count))
+	blizzard_cache = {0: squares}
+	first_trip_distance = bfs(blizzard_cache, traveler, destination, x_count, y_count, 0)
+
+	# part 1
+	print(first_trip_distance)
+
+	# part 2
+	second_trip_distance = bfs(blizzard_cache, destination, traveler, x_count, y_count, first_trip_distance)
+	third_trip_distance = bfs(blizzard_cache, traveler, destination, x_count, y_count, second_trip_distance)
+	print(third_trip_distance)
 
 
