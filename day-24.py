@@ -1,11 +1,5 @@
 from helpers import load_data
 
-class State:
-	def __init__(self, blizzards, traveler, state_depth):
-		self.blizzards = blizzards
-		self.traveler = traveler
-		self.state_depth = state_depth
-
 def print_board(squares, x_count, y_count, traveler):
 	for y in reversed(range(y_count)):
 		for x in range(x_count):
@@ -56,49 +50,31 @@ def possible_traveler_squares(updated_squares, traveler, destination, board_widt
 				result.append(potential_square)
 	return result
 
-# TODO how can we distinguish states properly for "seen" flag?
 def bfs(blizzards, traveler, destination, board_width, board_height):
-	first_state = State(blizzards, traveler, 0)
-	queue = [first_state]
-	seen_states = set() # TODO not sure this will work correctly
+
+	blizzard_cache = {0: blizzards}
+
+	# our nodes / states are a given position at a given time
+	queue = [(traveler, 0)]
+	seen_states = set()
 	
-	# TODO remove
-	traveler_set = set()
-	previous_size = 0
 	while len(queue) > 0:
-		current_state = queue.pop(0)
 
-		# TODO we're considering way too many paths. unique traveler locations are increasing, but slowly
-		traveler_set.add(current_state.traveler)
-		if len(traveler_set) > previous_size:
-			previous_size = len(traveler_set)
-			print('Unique traveler locations seen: ' + str(len(traveler_set)))
-		# print(str(len(seen_states)))
+		position, time = queue.pop(0)
 
-		# TODO not even getting to depth 20 :O	
-		if current_state.traveler == destination:
-			return current_state.state_depth 
+		if position == destination:
+			return time
 
-		new_blizzards = update_blizzard_locations(current_state.blizzards, board_width, board_height)
+		if time + 1 not in blizzard_cache.keys():
+			blizzard_cache[time + 1] = update_blizzard_locations(blizzard_cache[time], board_width, board_height)
+		new_blizzards = blizzard_cache[time + 1]
 
-		potential_moves = possible_traveler_squares(new_blizzards, current_state.traveler, destination, board_width, board_height)
+		potential_moves = possible_traveler_squares(new_blizzards, position, destination, board_width, board_height)
 		for potential_move in potential_moves:
-			new_state = State(new_blizzards, potential_move, current_state.state_depth + 1)
-
-			# TODO this has to be crazy slow
-			already_seen = False
-			for state in seen_states:
-				if are_states_equal(new_state, state):
-					# print('already saw')
-					already_seen == True
-					break
-
-			if not already_seen:
+			new_state = (potential_move, time + 1)
+			if new_state not in seen_states:
 				seen_states.add(new_state)
 				queue.append(new_state)
-
-def are_states_equal(state_1, state_2):
-	return state_1.traveler == state_2.traveler and state_1.blizzards == state_2.blizzards
 
 if __name__ == "__main__":
 	data = load_data("day-24-input.txt")
@@ -129,19 +105,5 @@ if __name__ == "__main__":
 	y_count = row_count - 2
 
 	print(bfs(squares, traveler, destination, x_count, y_count))
-
-	# test_dict_1 = {1: '1', 2: '2'}
-	# test_dict_2 = {2: '2', 1: '1'}
-	# traveler_1 = complex(2,2)
-	# traveler_2 = complex(2,2)
-	# destination_1 = complex(3,3)
-	# destination_2 = complex(3,3)
-
-	# test_state_1 = State(test_dict_1, traveler_1, destination_1, 5)
-	# test_state_2 = State(test_dict_2, traveler_2, destination_2, 5)
-	# print(test_state_1 == test_state_2)
-	# print(are_states_equal(test_state_1, test_state_2))
-
-
 
 
