@@ -1,47 +1,103 @@
 from helpers import load_data
-from collections import defaultdict
 
-# TODO General idea: Create a graph where each node is an entire state of the problem.
-# This would mean each node keeps a record of:
-# - the current minute in the simulation
-#	- where every blizzard is currently located
-# - where the traveler is currently located
-# At every minute, we'll compute the next states/spaces we could move to
-# Each potential state is added to the graph by a directed edge coming from the current node
-# Finally, we run BFS on the graph, with the terminating condition being the traveler
-# reaching the end coordinate
-# Ideally this is fast enough for the given input size
-# An important point: We don't have to create the graph and then traverse it. We can
-# just create the new nodes as we are running BFS. This limits the runtime to 
-# that of BFS (which is O(V+E)).
+class State:
+	def __init__(self, blizzards, traveler, destination, state_depth):
+		self.blizzards = blizzards
+		self.traveler = traveler
+		# TODO always the same
+		self.destination = destination
+		self.state_depth = state_depth
 
-def print_board(squares, row_count, col_count):
-	for y in reversed(range(row_count - 2)):
-		for x in range(col_count - 2):
-			# TODO hanlde overlaps
-			if len(squares[complex(x, y)]) == 1:
-				print(squares[complex(x, y)][0], end='')
+def print_board(squares, x_count, y_count, traveler):
+	for y in reversed(range(y_count)):
+		for x in range(x_count):
+
+			if complex(x, y) == traveler:
+				print('T', end='')
 			else:
-				print(len(squares[complex(x, y)]), end='')
+				# TODO hanlde overlaps
+				if len(squares[complex(x, y)]) == 1:
+					print(squares[complex(x, y)][0], end='')
+				elif len(squares[complex(x, y)]) == 0:
+					print('.', end='')
+				else:
+					print(len(squares[complex(x, y)]), end='')
 		print()
 
-def update_blizzard_location(squares, blizzard_coordinate):
-	board_width = 6
-	board_height = 4
-	# TODO could have multiple blizzards at each square
-	# TODO need to handle not processing blizzards more than once 
-	symbol = squares[blizzard_coordinate]
-	match symbol:
-		case '<':
-			# TODO modulo compute x coordinate
-			pass
-		case '>':
-			pass
-		case 'v':
-			pass
-		case '^':
-			pass
-		case _: raise Exception('No bueno')
+	# TODO do we need better "not seen" logic?
+# def not_already_seen(test_state, seen_states):
+# 	for seen_state in seen_states:
+# 		if test_state.traveler == seen_states.traveler:
+# 			if test_state.blizzards in seen_state.blizzard:
+# 	return True
+
+def update_blizzard_locations(squares, board_width, board_height):
+	result = {}
+	for coord, symbols in squares.items():
+
+		# TODO unsure if needed
+		if len(symbols) == 0:
+			# TODO it is... with the empty spaces
+			# print('Is this happening?')
+			# print(coord)
+			continue
+
+		for symbol in symbols:
+			match symbol:
+				case '<':
+					new_coord = complex((coord.real - 1) % board_width, coord.imag)
+				case '>':
+					new_coord = complex((coord.real + 1) % board_width, coord.imag)
+				case 'v':
+					new_coord = complex(coord.real, (coord.imag - 1) % board_height)
+				case '^':
+					new_coord = complex(coord.real, (coord.imag + 1) % board_height)
+				case _: raise Exception(symbol)
+
+			if new_coord not in result.keys():
+				result[new_coord] = [symbol]
+			else:
+				result[new_coord].append(symbol)
+
+	return result
+
+def possible_traveler_squares(updated_squares, traveler, destination, board_width, board_height):
+	potential_squares = [traveler, traveler + complex(-1, 0), traveler + complex(1, 0), traveler + complex(0, -1),traveler + complex(0, 1)]
+
+	result = []
+	for potential_square in potential_squares:
+		# TODO the potential_square == traveler just allows the elf to stay in the start position
+		if (potential_square == destination) or (potential_square == traveler) or (potential_square.real >= 0 and potential_square.real < board_width and potential_square.imag >= 0 and potential_square.imag < board_height):
+			# TODO I think this check creates extra entries in our map
+			if potential_square not in updated_squares.keys():
+				result.append(potential_square)
+	return result
+
+# TODO how can we distinguish states properly for "seen" flag?
+def bfs(blizzards, traveler, destination, board_width, board_height):
+	first_state = State(blizzards, traveler, destination, 0)
+	queue = [first_state]
+	seen_states = set() # TODO not sure this will work correctly
+
+	while len(queue) > 0:
+		current_state = queue.pop(0)
+
+		if current_state.state_depth % 10 == 0:
+			print(current_state.state_depth)
+		
+		if current_state.traveler == current_state.destination:
+			return current_state.state_depth 
+
+		new_blizzards = update_blizzard_locations(current_state.blizzards, board_width, board_height)
+
+		potential_moves = possible_traveler_squares(new_blizzards, current_state.traveler, current_state.destination, board_width, board_height)
+		for potential_move in potential_moves:
+			new_state = State(new_blizzards, potential_move, destination, current_state.state_depth + 1)
+			if new_state not in seen_states:
+				seen_states.add(new_state)
+				queue.append(new_state)
+			else:
+				print('already saw')
 
 if __name__ == "__main__":
 	data = load_data("day-24-test-input.txt")
@@ -52,7 +108,7 @@ if __name__ == "__main__":
 	col_count = len(data[0])
 	traveler = None
 	destination = None
-	squares = defaultdict(lambda: [])
+	squares = {}
 	for y in range(row_count):
 		for x in range(col_count):
 			symbol = data[row_count - 1 - y][x]
@@ -64,16 +120,15 @@ if __name__ == "__main__":
 						destination = complex(x - 1, y - 1)
 					elif y == row_count - 1:
 						traveler = complex(x - 1, y - 1)
-					else:
-						squares[complex(x - 1, y - 1)].append(symbol)
+				# should be the >, <, v, and ^ cases
 				case _:
-						# should be the >, <, v, and ^ cases
-						squares[complex(x - 1, y - 1)].append(symbol)
-	print_board(squares, row_count, col_count)
-	print(traveler)
-	print(destination)
+					squares[complex(x - 1, y - 1)] = [symbol]
 
-	# now move all blizzards one unit and check what traveler's options
+	# the width and height of the board without walls
+	x_count = col_count - 2
+	y_count = row_count - 2
+
+	print(bfs(squares, traveler, destination, x_count, y_count))
 
 
 
