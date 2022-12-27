@@ -103,10 +103,10 @@ if __name__ == "__main__":
 	blizzard_cache = {0: squares}
 	first_trip_distance = bfs(blizzard_cache, traveler, destination, x_count, y_count, 0)
 
-	# part 1
+	# part 1 (answer: 308)
 	print(first_trip_distance)
 
-	# part 2
+	# part 2 (answer: 908)
 	second_trip_distance = bfs(blizzard_cache, destination, traveler, x_count, y_count, first_trip_distance)
 	third_trip_distance = bfs(blizzard_cache, traveler, destination, x_count, y_count, second_trip_distance)
 	print(third_trip_distance)
