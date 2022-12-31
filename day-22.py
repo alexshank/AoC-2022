@@ -15,8 +15,8 @@ def can_move_again(board, direction, current_location):
 	
 	limits = compute_limits(board, current_location.real, current_location.imag)
 
-	print(current_location)
-	print(limits)
+	# print(current_location)
+	# print(limits)
 	match direction:
 		case 'R':
 			test_location = current_location + complex(1, 0)
@@ -43,22 +43,23 @@ def can_move_again(board, direction, current_location):
 	elif board[test_location] == '#':
 				return current_location
 
-def print_board(board):
-	min_x = int(min(board.keys(), key=lambda x: x.real).real)
-	max_x = int(max(board.keys(), key=lambda x: x.real).real)
-	min_y = int(min(board.keys(), key=lambda x: x.imag).imag)
-	max_y = int(max(board.keys(), key=lambda x: x.imag).imag)
+def print_board(x_board):
+	print(x_board)
+	min_x = int(min(x_board.keys(), key=lambda x: x.real).real)
+	max_x = int(max(x_board.keys(), key=lambda x: x.real).real)
+	min_y = int(min(x_board.keys(), key=lambda x: x.imag).imag)
+	max_y = int(max(x_board.keys(), key=lambda x: x.imag).imag)
 
 	for y in reversed(range(min_y, max_y + 1)):
 		for x in range(min_x - 1, max_x + 1):
-			if complex(x, y) in board.keys():
-				print(board[complex(x, y)], end='')
+			if complex(x, y) in x_board.keys():
+				print(x_board[complex(x, y)], end='')
 			else:
 				print(' ', end='')
 		print()
 
 if __name__ == "__main__":
-	data, instructions = load_data_grouped("day-22-input.txt")
+	data, instructions = load_data_grouped("day-22-test-input.txt")
 	instructions = instructions[0]
 
 	# TODO can we re-use common "board looking input" logic?
@@ -91,26 +92,45 @@ if __name__ == "__main__":
 	y_max = max(board.keys(), key=lambda x: x.imag).imag
 	x_min = min({x for x in board.keys() if x.imag == y_max}, key=lambda x: x.real).real
 	current_location = complex(x_min, y_max)
-	print(current_location)
+	# print(current_location)
 
 	# for round_num in range(10):
+	direction_index = -1 # initialize based on known input
+	directions = ['R', 'D', 'L', 'U']
+	arrows = ['>', 'V', '<', '^']
+	display_board = board.copy()
 	for instruction in results:
 		temp = list(instruction)
 		# print(temp)
 		direction = temp[0]
-		# print(direction)
+		if direction == 'R':
+			direction_index += 1
+		else:
+			direction_index -= 1
 		steps = int(''.join(temp[1:]))
 		# print(steps)
 
 		for i in range(steps):
-			new_position = can_move_again(board, direction, current_location)
+			display_board[current_location] = arrows[direction_index % 4]
+			new_position = can_move_again(board, directions[direction_index % 4], current_location)
 			if new_position == current_location:
 				break
 			else:
 				current_location = new_position
+		
+	print_board(display_board)
 
 	# # part 1 (answer: )
+	print()
 	print(current_location)
+	print('row')
+	print(row_count - (current_location.imag))
+	print('col')
+	print(current_location.real + 1)
+	print('direction')
+	print(directions[direction_index % 4])
+	print(direction_index)
+	print(int(1000 * (row_count - (current_location.imag)) + 4 * (current_location.real + 1) + direction_index))
 
 
 
