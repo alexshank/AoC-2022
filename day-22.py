@@ -1,10 +1,47 @@
 from helpers import load_data_grouped
 
-def can_move(elves, test_square, mask):
-	square_1 = mask[0] + test_square
-	square_2 = mask[1] + test_square
-	square_3 = mask[2] + test_square
-	return square_1 not in elves and square_2 not in elves and square_3 not in elves
+def compute_limits(board, x, y):
+	row_keys = {key for key in board.keys() if key.imag == y}
+	col_keys = {key for key in board.keys() if key.real == x}
+
+	min_x = int(min(row_keys, key=lambda x: x.real).real)
+	max_x = int(max(row_keys, key=lambda x: x.real).real)
+	min_y = int(min(col_keys, key=lambda x: x.imag).imag)
+	max_y = int(max(col_keys, key=lambda x: x.imag).imag)
+
+	return min_x, max_x, min_y, max_y
+
+def can_move_again(board, direction, current_location):
+	
+	limits = compute_limits(board, current_location.real, current_location.imag)
+
+	print(current_location)
+	print(limits)
+	match direction:
+		case 'R':
+			test_location = current_location + complex(1, 0)
+			if test_location.real > limits[1]:
+				test_location = complex(limits[0], test_location.imag)
+		
+		case 'L':
+			test_location = current_location + complex(-1, 0)
+			if test_location.real < limits[0]:
+				test_location = complex(limits[1], test_location.imag)
+
+		case 'U':
+			test_location = current_location + complex(0, 1)
+			if test_location.imag > limits[3]:
+				test_location = complex(test_location.real, limits[2])
+
+		case 'D':
+			test_location = current_location + complex(0, -1)
+			if test_location.imag < limits[2]:
+				test_location = complex(test_location.real, limits[3])
+
+	if board[test_location] == '.':
+				return test_location
+	elif board[test_location] == '#':
+				return current_location
 
 def print_board(board):
 	min_x = int(min(board.keys(), key=lambda x: x.real).real)
@@ -34,70 +71,46 @@ if __name__ == "__main__":
 			if data[data_y_index][x] != ' ':
 				board[complex(x, y)] = data[data_y_index][x]
 
-	up_mask = 0 + 1j
-	down_mask = 0 - 1j
-	left_mask =  -1 + 0j
-	right_mask =  1 + 0j
-	masks = [up_mask, down_mask, left_mask, right_mask]
-
-	# # key is square to move to, value is list of elves wanting to move there
-	# elf_moves = defaultdict(lambda: [])
-	# # for round_num in range(10):
-	# for round_num in range(10_000):
-
-	# 	# for every elf square
-	# 	for test_square in elves:
-
-	# 		# TODO clean up. Check every direction
-	# 		try_to_move = False
-	# 		for i in range(len(masks)):
-	# 			if not can_move(elves, test_square, masks[i]):
-	# 				try_to_move = True
-			
-	# 		if try_to_move == False:
-	# 			continue
-
-	# 		# for every mask
-	# 		for i in range(len(masks)):
-	# 			current_mask = masks[(i + round_num) % len(masks)]
-	# 			if can_move(elves, test_square, current_mask):
-	# 				elf_moves[current_mask[1] + test_square].append(test_square)
-	# 				break
-
-	# 	elf_did_move = False
-	# 	for destination_square, list_original_squares in elf_moves.items():
-	# 		if len(list_original_squares) == 1:
-	# 			elf_did_move = True
-	# 			elves.remove(list_original_squares[0])
-	# 			elves.add(destination_square)
-	# 	elf_moves.clear()
-
-	# 	# part 2 (answer: 925)
-	# 	if not elf_did_move:
-	# 		print('round number:')
-	# 		print(round_num + 1)
-	# 		break	
+	masks = {
+		'U': 0 + 1j,
+		'D': 0 - 1j,
+		'L': -1 + 0j,
+		'R': 1 + 0j
+	}
 
 	results = ['R' + instructions[:2]]
 	instructions = instructions[2:]
 	previous_index = 0
-	for i, v in enumerate(instructions):
+	for i, v in enumerate(instructions[1:]):
 		if not v.isdigit():
-			results.append(instructions[previous_index:i])
-			previous_index = i
+			results.append(instructions[previous_index:i + 1])
+			previous_index = i + 1
 	results.append(instructions[previous_index:])
+	# print(results)
 
-	for r in results:
-		print(r)
+	y_max = max(board.keys(), key=lambda x: x.imag).imag
+	x_min = min({x for x in board.keys() if x.imag == y_max}, key=lambda x: x.real).real
+	current_location = complex(x_min, y_max)
+	print(current_location)
 
-	print(results[0])
+	# for round_num in range(10):
+	for instruction in results:
+		temp = list(instruction)
+		# print(temp)
+		direction = temp[0]
+		# print(direction)
+		steps = int(''.join(temp[1:]))
+		# print(steps)
 
-
-
+		for i in range(steps):
+			new_position = can_move_again(board, direction, current_location)
+			if new_position == current_location:
+				break
+			else:
+				current_location = new_position
 
 	# # part 1 (answer: )
-	# print_board(board)
-	# print(instructions)
+	print(current_location)
 
 
 
