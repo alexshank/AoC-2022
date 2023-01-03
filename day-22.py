@@ -39,12 +39,14 @@ def can_move_again(board, direction, current_location):
 				test_location = complex(test_location.real, limits[3])
 
 	if board[test_location] == '.':
-				return test_location
+		return test_location
 	elif board[test_location] == '#':
-				return current_location
+		return current_location
+	else:
+		print('DANGER')
+		return None	
 
 def print_board(x_board):
-	print(x_board)
 	min_x = int(min(x_board.keys(), key=lambda x: x.real).real)
 	max_x = int(max(x_board.keys(), key=lambda x: x.real).real)
 	min_y = int(min(x_board.keys(), key=lambda x: x.imag).imag)
@@ -59,7 +61,7 @@ def print_board(x_board):
 		print()
 
 if __name__ == "__main__":
-	data, instructions = load_data_grouped("day-22-test-input.txt")
+	data, instructions = load_data_grouped("day-22-input.txt")
 	instructions = instructions[0]
 
 	# TODO can we re-use common "board looking input" logic?
@@ -120,6 +122,7 @@ if __name__ == "__main__":
 		
 	print_board(display_board)
 
+	# TODO have guessed 165110 already
 	# # part 1 (answer: )
 	print()
 	print(current_location)
