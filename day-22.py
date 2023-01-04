@@ -2,6 +2,16 @@ from helpers import load_data_grouped
 from visualize import pc
 import time
 
+SIDES = {
+	0: (50, 99, 150, 199),
+	1: (100, 149, 150, 199),
+	2: (50, 99, 100, 149),
+	3: (50, 99, 50, 99),
+	4: (0, 49, 50, 99),
+	5: (0, 49, 0, 49)
+}
+
+
 def compute_limits(board, x, y):
 	row_keys = {key for key in board.keys() if key.imag == y}
 	col_keys = {key for key in board.keys() if key.real == x}
@@ -50,7 +60,26 @@ def can_move_again(board, direction, current_location):
 		print('DANGER')
 		return None	
 
-def print_board(x_board, current_location, arrow):
+def in_range(complex_point, limits):
+	result = True
+	result = result and complex_point.real >= limits[0]
+	result = result and complex_point.real <= limits[1]
+	result = result and complex_point.imag >= limits[2]
+	result = result and complex_point.imag <= limits[3]
+	return result
+
+# TODO implement
+# TODO end_loc is from part 1's 
+def teleport_and_orient(start_loc, direction, current_side, side_to_side_mapping):
+
+	# TODO can assert that the start_loc is on some kind of x or y boundary
+
+	# TODO probably just need to update either x or y to a new boundary? maybe both in some cases?
+
+	# TODO translate the point to new side, update direction (absolute direction from unfolded board)
+	pass
+
+def print_board(x_board, current_location, arrow, side_number = 0):
 	min_x = int(min(x_board.keys(), key=lambda x: x.real).real)
 	max_x = int(max(x_board.keys(), key=lambda x: x.real).real)
 	min_y = int(min(x_board.keys(), key=lambda x: x.imag).imag)
@@ -60,14 +89,15 @@ def print_board(x_board, current_location, arrow):
 	# min_y = max(min_y, int(current_location.imag) - 20)
 	# max_y = min(max_y, int(current_location.imag) + 20)
 
-
 	for y in reversed(range(min_y, max_y + 1)):
 		print(f'{(max_y - y + 1):03} {y:03}', end='')
 		for x in range(min_x - 1, max_x + 1):
-			if complex(x, y) == current_location:
+			if in_range(complex(x, y), SIDES[side_number]):
+				pc(x_board[complex(x, y)], 'blue', end='')
+			elif complex(x, y) == current_location:
 				pc(arrow, 'green', end='')
 			elif complex(x, y) in x_board.keys():
-				pc(x_board[complex(x, y)], 'red', end='')
+				pc(x_board[complex(x, y)], 'yellow', end='')
 			else:
 				print(' ', end='')
 		print()
@@ -101,31 +131,29 @@ if __name__ == "__main__":
 			results.append(instructions[previous_index:i + 1])
 			previous_index = i + 1
 	results.append(instructions[previous_index:])
-	# print(results)
 
-	# for r in results[:40]:
-	# 	print(r)
-
+	# TODO move into function (used in compute... function above)
 	y_max = max(board.keys(), key=lambda x: x.imag).imag
 	x_min = min({x for x in board.keys() if x.imag == y_max}, key=lambda x: x.real).real
 	current_location = complex(x_min, y_max)
-	# print(current_location)
 
-	# for round_num in range(10):
 	direction_index = -1 # initialize based on known input
 	directions = ['R', 'D', 'L', 'U']
 	arrows = ['>', 'V', '<', '^']
 	display_board = board.copy()
 	for instruction in results:
+
+		break
+
+
+
 		temp = list(instruction)
-		# print(temp)
 		direction = temp[0]
 		if direction == 'R':
 			direction_index += 1
 		else:
 			direction_index -= 1
 		steps = int(''.join(temp[1:]))
-		# print(steps)
 
 		for i in range(steps):
 			display_board[current_location] = arrows[direction_index % 4]
@@ -135,28 +163,16 @@ if __name__ == "__main__":
 			else:
 				current_location = new_position
 
+			# TODO windowing / visualization probably not relevant now
 			# print_board(display_board, current_location, arrows[direction_index % 4])
 			# time.sleep(0.1)
 			# print("\033[J", end="")
 			# print()
 		
+	print_board(display_board, current_location, arrows[direction_index % 4], 5)
 
-		
-	print_board(display_board, current_location, arrows[direction_index % 4])
-
-
-	# forgot to modulu and debugged for 4 hours :'(
 	# TODO should have called direction_index direction_counter
 	# part 1 (answer: 165094)
-	print()
-	print(current_location)
-	print('row')
-	print(row_count - (current_location.imag))
-	print('col')
-	print(current_location.real + 1)
-	print('direction')
-	print(directions[direction_index % 4])
-	print(direction_index % 4)
 	print(int(1000 * (row_count - (current_location.imag)) + 4 * (current_location.real + 1) + (direction_index % 4)))
 
 
