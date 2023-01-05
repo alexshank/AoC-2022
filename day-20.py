@@ -20,7 +20,7 @@ def swap(mix_numbers, left_index, right_index):
 		mix_numbers[right_index] = temp
 
 if __name__ == "__main__":
-	data = load_data("day-20-input.txt")
+	data = load_data("day-20-alex2-input.txt")
 	data = [int(d) for d in data]
 
 	# key is the current index of the value
@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
 		# moving left
 		if movement < 0:
-			left = abs(movement) % mix_len
+			left = int(abs(movement)) % mix_len
 			if left == 0:
 				print('skipping left')
 				print()
