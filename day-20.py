@@ -1,107 +1,63 @@
 from helpers import load_data
 
-
-# TODO need to create a larger example case with zero in it and numbers that are > 3 * len of list
-# TODO next potential issue: when we wrap multiple times, we probably need to increment many times??
-
-def find_current_index_by_original_index(target_index):
-	for k, v in mix_numbers.items():
-		if v.original_index == target_index:
-			return k	
-
-class MixNumber:
-	def __init__(self, original_index, value):
-		self.original_index = original_index
-		self.value = value
-
-def swap(mix_numbers, left_index, right_index):
-		temp = mix_numbers[left_index]
-		mix_numbers[left_index] = mix_numbers[right_index]
-		mix_numbers[right_index] = temp
+# Note: I still do not intuitively understand "moving the number forward/backward."
+# The solution below is based on a Reddit Advent of Code solution I read,
+# but I would not consider this behavior what the problem describes.
+#
+# Accepting defeat on this one since I can't get any further explanation of the prompt.
+# I feel good about the coding concepts this was driving at though.
+#
+# P.S. See git history for many confused attempts!
 
 if __name__ == "__main__":
-	data = load_data("day-20-alex2-input.txt")
-	data = [int(d) for d in data]
+	data = load_data("day-20-input.txt")
+	numbers = [int(d) for d in data]	# The original list, we will NOT augment it.
+	indices = list(range(len(data)))	# consider a single element: item[i] = v
+																		# i = the new index of a number after being mixed
+																		# v = the original index of the number
 
-	# key is the current index of the value
-	mix_numbers = {i: MixNumber(i, val) for i, val in enumerate(data)}
-	mix_len = len(mix_numbers)
+	for i in range(len(numbers)):
+		element_magnitude = numbers[i]
+		element_current_mix_index = indices.index(i)
 
-	# print([v.value for v in mix_numbers.values()])
-	# print()
-
-	for i in range(mix_len):
-		# print(str(i) + ' of ' + str(mix_len))
-		# print('--------------')
-		# print([v.value for v in mix_numbers.values()])
-
-		start_index = find_current_index_by_original_index(i)
-		movement = mix_numbers[start_index].value
-
-		print(f'Starting at: {start_index}')
-		print(f'Moving: {movement}')
-
-		# moving left
-		if movement < 0:
-			left = int(abs(movement)) % mix_len
-			if left == 0:
-				print('skipping left')
-				print()
-				continue
-			elif start_index - left <= 0: # TODO should this be zero inclusive? really?
-				right = mix_len - 1 - left
-				print(f'Right: {right}')
-				for i in range(right):
-					swap(mix_numbers, start_index + i, start_index + 1 + i)
-			else:
-				print(f'Left: {left}')
-				for i in range(left):
-					swap(mix_numbers, start_index - 1 - i, start_index - i)
-		# moving right
+		# This is the very unintuitive behavior imo:
+		# (1) We wrap the list while the element is removed?
+		# (2) Moving an element to position zero sends it to the back?
+		element_mix = indices.pop(element_current_mix_index)
+		# Note: len(indices) is len(numbers) - 1 during this call
+		element_next_mix_index = (element_current_mix_index + element_magnitude) % len(indices)
+		if element_next_mix_index == 0:
+			indices.append(element_mix)
 		else:
-			right = movement % mix_len
-			if right == 0:
-				print('skipping right')
-				print()
-				continue
-			elif start_index + right >= mix_len:
-				left = mix_len - 1 - right
-				print(f'Left: {left}')
-				for i in range(left):
-					swap(mix_numbers, start_index - 1 - i, start_index - i)
-			else:
-				print(f'Right: {right}')
-				for i in range(right):
-					swap(mix_numbers, start_index + i, start_index + 1 + i)
-		print()
+			indices.insert(element_next_mix_index, element_mix)
 
-		# print([v.value for v in mix_numbers.values()])
-		print()
+	# part 1 (answer: 14526)
+	mixed_zero_index = indices.index(numbers.index(0))
+	result = 0
+	for i in [1_000, 2_000, 3_000]:
+		original_index = indices[(mixed_zero_index + i) % len(indices)]
+		result += numbers[original_index]
+	print(f'Part 1: {result}')
 
-print('-----------------')
-print([v.value for v in mix_numbers.values()])
-print('-----------------')
-print()
+	# part 2 (answer: )
+	numbers = [number * 811589153 for number in numbers]
+	indices = list(range(len(data))) # reset
+	for i in indices * 10:
+		element_magnitude = numbers[i]
+		element_current_mix_index = indices.index(i)
+		element_mix = indices.pop(element_current_mix_index)
+		element_next_mix_index = (element_current_mix_index + element_magnitude) % len(indices)
+		if element_next_mix_index == 0:
+			indices.append(element_mix)
+		else:
+			indices.insert(element_next_mix_index, element_mix)
 
-
-index_of_zero = None 
-for k, v in mix_numbers.items():
-	if v.value == 0:
-		index_of_zero = k
-		break
-print(index_of_zero)
-
-# TODO guessed 2487, was too low
-print('summing')
-print(mix_numbers[(index_of_zero + 1_000) % mix_len].value)
-print(mix_numbers[(index_of_zero + 2_000) % mix_len].value)
-print(mix_numbers[(index_of_zero + 3_000) % mix_len].value)
-print('final')
-print(sum([mix_numbers[(index_of_zero + 1_000) % mix_len].value, mix_numbers[(index_of_zero + 2_000) % mix_len].value], mix_numbers[(index_of_zero + 3_000) % mix_len].value))
-
-# print([v.value for v in mix_numbers.values()])
+	mixed_zero_index = indices.index(numbers.index(0))
+	result = 0
+	for i in [1_000, 2_000, 3_000]:
+		original_index = indices[(mixed_zero_index + i) % len(indices)]
+		result += numbers[original_index]
+	print(f'Part 2: {result}')
 
 
 
-
-	
