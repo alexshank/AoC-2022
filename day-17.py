@@ -1,13 +1,18 @@
 from helpers import load_data, load_data_grouped
 
 CHAMBER_WIDTH = 7
-STARTING_X_COORD = 2	# left wall is between 0 and -1 x index
+STARTING_X_COORD = 2	# left wall is between -1 and 0 x indices
+LEFT = complex(-1, 0)
+RIGHT = complex(1, 0)
+DOWN = complex(0, -1)
+
 
 def compute_rock_location(complex_point, rock_definition):
 	result = set()
 	for offset in rock_definition:
 		result.add(complex_point + offset)
 	return result
+
 
 def print_chamber(rock_pile, falling_rock, y_limit):
 	for y in reversed(range(y_limit)):
@@ -22,18 +27,20 @@ def print_chamber(rock_pile, falling_rock, y_limit):
 		print('|')
 	print('+' + ('-' * CHAMBER_WIDTH) + '+')
 
+
 def move_rock(rock_locations, movement):
 	result = set()
 	for location in rock_locations:
 		result.add(location + movement)
 	return result
 
-# TODO or side of rock!
-def rock_hit_wall_or_side_of_rock(rock_locations, rock_pile):
+
+def rock_hit_wall_or_side_of_other_rock(rock_locations, rock_pile):
 	for location in rock_locations:
 		if location.real == -1 or location.real == CHAMBER_WIDTH or location in rock_pile:
 			return True
 	return False
+
 
 def rock_has_stopped(rock_locations, rock_pile):
 	for location in rock_locations:
@@ -41,10 +48,12 @@ def rock_has_stopped(rock_locations, rock_pile):
 			return True
 	return False
 
+
 if __name__ == "__main__":
-	wind_blows = load_data("day-17-input.txt")[0]	# TODO itertools should have an infinite iterator
+	wind_chars = load_data("day-17-input.txt")[0]	# TODO itertools should have an infinite iterator
 	rocks = load_data_grouped("day-17-rock-input.txt")
 
+	# parse rock definitions
 	# a rock's location is represented by a set of complex coordinates
 	# a rock definition is a set of complex coordinates defined from its bottom-left corner
 	rock_definitions = []
@@ -57,91 +66,46 @@ if __name__ == "__main__":
 					temp_rock_set.add(complex(x, y))
 		rock_definitions.append(temp_rock_set)
 
-	pile_height = -1	# floor is bewteen 0 and -1 y index
-	
-	rock_pile = set()	# all coordinates with a stopped rock
-	falling_rock = set()	# all coordinates of the currently falling rock
-	updated_falling_rock = set()	# we move the falling rock, then check if it's in a valid position
+	# parse cycular wind movements
+	wind_movements = [LEFT if c == '<' else RIGHT for c in wind_chars]
 
+	rock_pile = set()							# all coordinates containing a stopped rock
+	pile_max_y = -1								# track the highest y coordinate in the pile set
+	falling_rock = set()					# all coordinates containing the currently falling rock
+	updated_falling_rock = set()	# we move the falling rock, then check if new set is in a valid position
+	rock_definition_index = 0			# rotate through rock definitions
+	wind_movement_index = 0				# rotate through wind movements
+	stopped_rock_count = 0				# track how many rocks we've dropped into the pile
 
-	rock_definition_index = 0
-	wind_blow_index = 0
-	stopped_rock_count = 0
-
-	y_distance_offset = 0
-	Y_DISTANCE_THRESHOLD = 500
-
-	wind_movements = []
-	for wind in wind_blows:
-		match wind_blows[wind_blow_index]:
-			case '<':
-				movement = complex(-1, 0)
-			case '>':
-				movement = complex(1, 0)
-		wind_movements.append(movement)
-
-	# part 1 (answer: 3127)
-
-	# 1000000000000
-	# 2022 
-	while stopped_rock_count < 1_000_000_000_000:
-
-		print(stopped_rock_count)
-
-		starting_position = complex(STARTING_X_COORD, pile_height + 4)
+	# part 1: 2022 
+	# part 2: 1_000_000_000_000
+	while stopped_rock_count < 2022:
+		starting_position = complex(STARTING_X_COORD, pile_max_y + 4)
 		falling_rock = compute_rock_location(starting_position, rock_definitions[rock_definition_index])
-		rock_definition_index += 1
-		if rock_definition_index == 5:
-			rock_definition_index = 0
+		rock_definition_index = (rock_definition_index + 1) % len(rock_definitions)
 
-		rock_not_stopped = True 
-		while rock_not_stopped:
-
+		rock_is_stopped = False
+		while not rock_is_stopped:
 			# blown by wind
-			movement = wind_movements[wind_blow_index]
-			wind_blow_index += 1
-			if wind_blow_index == len(wind_blows):
-				wind_blow_index = 0
+			movement = wind_movements[wind_movement_index]
+			wind_movement_index = (wind_movement_index + 1) % len(wind_movements)
 
 			# check wall conditions
 			updated_falling_rock = move_rock(falling_rock, movement)
-			if not rock_hit_wall_or_side_of_rock(updated_falling_rock, rock_pile):
+			if not rock_hit_wall_or_side_of_other_rock(updated_falling_rock, rock_pile):
 				falling_rock = updated_falling_rock
 
 			# move down 1
-			updated_falling_rock = move_rock(falling_rock, complex(0, -1))
-
-			# check stopped condition
+			updated_falling_rock = move_rock(falling_rock, DOWN)
 			if not rock_has_stopped(updated_falling_rock, rock_pile):
 				falling_rock = updated_falling_rock
 			else:
-				rock_not_stopped = False
+				rock_is_stopped = True
 				stopped_rock_count += 1
 				rock_pile = rock_pile.union(falling_rock)
-				pile_height = int(max(rock_pile, key=lambda x: x.imag).imag)
-				# falling_rock = set()	# TODO only clearing for printing
-			
-		if pile_height > 2 * Y_DISTANCE_THRESHOLD:
-			# print()
-			# print(rock_pile)
-			# print('pile height')
-			# print(pile_height)
-			# print('y distance offset')
-			# print(y_distance_offset)
-			# print('y offset constant')
-			# print(Y_DISTANCE_THRESHOLD)
-			y_distance_offset += Y_DISTANCE_THRESHOLD
-			pile_height -= Y_DISTANCE_THRESHOLD
-			result = set()
-			for location in rock_pile:
-				if location.imag > Y_DISTANCE_THRESHOLD:
-					result.add(complex(location.real, location.imag - Y_DISTANCE_THRESHOLD))
-			rock_pile = result
-			# print(rock_pile)
+				pile_max_y = int(max(rock_pile, key=lambda x: x.imag).imag)
 
-
+	# part 1 (answer: 3127)
 	# part 2 (answer: )
-	print(y_distance_offset + pile_height + 1)
+	print(pile_max_y + 1)
 
-	# TODO changing to matrix (or dictionary with complex number keys)
-	# TODO could give constant time access and waaay fewer looping
