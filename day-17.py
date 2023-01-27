@@ -50,7 +50,7 @@ def rock_has_stopped(rock_locations, rock_pile):
 
 
 if __name__ == "__main__":
-	wind_chars = load_data("day-17-input.txt")[0]	# TODO itertools should have an infinite iterator
+	wind_chars = load_data("day-17-test-input.txt")[0]	# TODO itertools should have an infinite iterator
 	rocks = load_data_grouped("day-17-rock-input.txt")
 
 	# parse rock definitions
@@ -109,3 +109,9 @@ if __name__ == "__main__":
 	# part 2 (answer: )
 	print(pile_max_y + 1)
 
+	# TODO LCM doesn't seem to be sufficient
+	# TODO need to find clean way to detect when we have a rock that will dropped in a way we've already seen
+	# rock_definition_index
+	# wind_movement_index
+	# existing pile (beware of concave sides of rock pile - aka overhangs)
+	# break when a combo of above 3 has already been observed?
