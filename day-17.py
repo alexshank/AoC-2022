@@ -93,26 +93,33 @@ if __name__ == "__main__":
 	stopped_rock_count = 0				# track how many rocks we've dropped into the pile
 
 
-	cached_sets = set()
+	cached_sets = dict()
+	start_of_cycle = None
+	first_repeated_placement = None
 
 	# part 1: 2022 
 	# part 2: 1_000_000_000_000
 	while stopped_rock_count < 2022:
 		starting_position = complex(STARTING_X_COORD, pile_max_y + 4)
 		falling_rock = compute_rock_location(starting_position, rock_definitions[rock_definition_index])
-		rock_definition_index = (rock_definition_index + 1) % len(rock_definitions)
 
 		# TODO get top N rows of rock pile, and normalize their coordinates
 		normalized_set, y_min = normalize_set(rock_pile, starting_position)
-		print_chamber(normalized_set, compute_rock_location(complex(STARTING_X_COORD, pile_max_y + 4 - y_min), rock_definitions[rock_definition_index - 1]), 30)
+		# print_chamber(normalized_set, compute_rock_location(complex(STARTING_X_COORD, pile_max_y + 4 - y_min), rock_definitions[rock_definition_index]), 30)
 
 		if normalized_set in cached_sets:
-			print('found it!')
-		else:
-			cached_sets.add(normalized_set)
-
-		if stopped_rock_count == 1000:
+			print('-------current')
+			print((stopped_rock_count, pile_max_y))
+			print('-------last')
+			print(cached_sets[normalized_set])
+			print()
+			start_of_cycle = cached_sets[normalized_set][0]
+			first_repeated_placement = stopped_rock_count
 			break
+		else:
+			cached_sets[normalized_set] = (stopped_rock_count, pile_max_y)
+		
+		rock_definition_index = (rock_definition_index + 1) % len(rock_definitions)
 
 		rock_is_stopped = False
 		while not rock_is_stopped:
@@ -135,9 +142,26 @@ if __name__ == "__main__":
 				rock_pile = rock_pile.union(falling_rock)
 				pile_max_y = int(max(rock_pile, key=lambda x: x.imag).imag)
 
+
+	print(cached_sets.values())
+	print(start_of_cycle)
+	print(first_repeated_placement)
+	cycle_elements = [s for s in cached_sets.values() if s[0] <= first_repeated_placement and s[0] >= start_of_cycle]
+	cycle_length = len(cycle_elements)
+	print()
+	cycle_diffs = [cycle_elements[i+1][1] - cycle_elements[i][1] for i in range(cycle_length - 1)]
+	cycle_pile_height = sum(cycle_diffs) + 1
+	print()
+
+	rocks_to_go = 2022 - start_of_cycle
+	cycles_needed = rocks_to_go // cycle_length
+	remainder = rocks_to_go % cycle_length
+
 	# part 1 (answer: 3127)
 	# part 2 (answer: )
-	print(pile_max_y + 1)
+	yy = (pile_max_y + 1) + cycles_needed * cycle_pile_height + sum(cycle_diffs[:remainder])
+
+	print(yy)
 
 	# TODO LCM doesn't seem to be sufficient
 	# TODO need to find clean way to detect when we have a rock that will dropped in a way we've already seen
