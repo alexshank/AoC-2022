@@ -49,6 +49,21 @@ def rock_has_stopped(rock_locations, rock_pile):
 	return False
 
 
+def normalize_set(rock_pile, starting_position):
+	result = set()
+	min_y = 100_000_000_000
+	for coord in rock_pile:
+		if coord.imag >= starting_position.imag - 30:
+			result.add(coord)
+			min_y = min(min_y, coord.imag)
+	
+	final = set()
+	for r in result:
+		final.add(complex(r.real, r.imag - min_y))
+	return frozenset(final), min_y
+	
+
+
 if __name__ == "__main__":
 	wind_chars = load_data("day-17-test-input.txt")[0]	# TODO itertools should have an infinite iterator
 	rocks = load_data_grouped("day-17-rock-input.txt")
@@ -72,10 +87,13 @@ if __name__ == "__main__":
 	rock_pile = set()							# all coordinates containing a stopped rock
 	pile_max_y = -1								# track the highest y coordinate in the pile set
 	falling_rock = set()					# all coordinates containing the currently falling rock
-	updated_falling_rock = set()	# we move the falling rock, then check if new set is in a valid position
+	candidate_falling_rock = set()	# we move the falling rock, then check if new set is in a valid position
 	rock_definition_index = 0			# rotate through rock definitions
 	wind_movement_index = 0				# rotate through wind movements
 	stopped_rock_count = 0				# track how many rocks we've dropped into the pile
+
+
+	cached_sets = set()
 
 	# part 1: 2022 
 	# part 2: 1_000_000_000_000
@@ -84,6 +102,18 @@ if __name__ == "__main__":
 		falling_rock = compute_rock_location(starting_position, rock_definitions[rock_definition_index])
 		rock_definition_index = (rock_definition_index + 1) % len(rock_definitions)
 
+		# TODO get top N rows of rock pile, and normalize their coordinates
+		normalized_set, y_min = normalize_set(rock_pile, starting_position)
+		print_chamber(normalized_set, compute_rock_location(complex(STARTING_X_COORD, pile_max_y + 4 - y_min), rock_definitions[rock_definition_index - 1]), 30)
+
+		if normalized_set in cached_sets:
+			print('found it!')
+		else:
+			cached_sets.add(normalized_set)
+
+		if stopped_rock_count == 1000:
+			break
+
 		rock_is_stopped = False
 		while not rock_is_stopped:
 			# blown by wind
@@ -91,14 +121,14 @@ if __name__ == "__main__":
 			wind_movement_index = (wind_movement_index + 1) % len(wind_movements)
 
 			# check wall conditions
-			updated_falling_rock = move_rock(falling_rock, movement)
-			if not rock_hit_wall_or_side_of_other_rock(updated_falling_rock, rock_pile):
-				falling_rock = updated_falling_rock
+			candidate_falling_rock = move_rock(falling_rock, movement)
+			if not rock_hit_wall_or_side_of_other_rock(candidate_falling_rock, rock_pile):
+				falling_rock = candidate_falling_rock
 
 			# move down 1
-			updated_falling_rock = move_rock(falling_rock, DOWN)
-			if not rock_has_stopped(updated_falling_rock, rock_pile):
-				falling_rock = updated_falling_rock
+			candidate_falling_rock = move_rock(falling_rock, DOWN)
+			if not rock_has_stopped(candidate_falling_rock, rock_pile):
+				falling_rock = candidate_falling_rock
 			else:
 				rock_is_stopped = True
 				stopped_rock_count += 1
