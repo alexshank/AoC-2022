@@ -6,6 +6,10 @@ LEFT = complex(-1, 0)
 RIGHT = complex(1, 0)
 DOWN = complex(0, -1)
 
+# part 1: 2022 
+# part 2: 1_000_000_000_000
+ROCK_COUNT = 1_000_000_000_000
+
 
 def compute_rock_location(complex_point, rock_definition):
 	result = set()
@@ -51,21 +55,23 @@ def rock_has_stopped(rock_locations, rock_pile):
 
 def normalize_set(rock_pile, starting_position):
 	result = set()
-	min_y = 100_000_000_000
+	min_y = 1_000_000_000_000 # arbitrary large number
 	for coord in rock_pile:
-		if coord.imag >= starting_position.imag - 30:
+		if coord.imag >= starting_position.imag - 300:
 			result.add(coord)
 			min_y = min(min_y, coord.imag)
 	
 	final = set()
 	for r in result:
 		final.add(complex(r.real, r.imag - min_y))
-	return frozenset(final), min_y
+	
+	# frozenset is an immutable built-in, meaning it can be hashed and added to a set
+	return frozenset(final)
 	
 
 
 if __name__ == "__main__":
-	wind_chars = load_data("day-17-test-input.txt")[0]	# TODO itertools should have an infinite iterator
+	wind_chars = load_data("day-17-input.txt")[0]	# TODO itertools should have an infinite iterator
 	rocks = load_data_grouped("day-17-rock-input.txt")
 
 	# parse rock definitions
@@ -84,41 +90,31 @@ if __name__ == "__main__":
 	# parse cycular wind movements
 	wind_movements = [LEFT if c == '<' else RIGHT for c in wind_chars]
 
-	rock_pile = set()							# all coordinates containing a stopped rock
-	pile_max_y = -1								# track the highest y coordinate in the pile set
-	falling_rock = set()					# all coordinates containing the currently falling rock
+	rock_pile = set()								# all coordinates containing a stopped rock
+	pile_max_y = -1									# track the highest y coordinate in the pile set
+	falling_rock = set()						# all coordinates containing the currently falling rock
 	candidate_falling_rock = set()	# we move the falling rock, then check if new set is in a valid position
-	rock_definition_index = 0			# rotate through rock definitions
-	wind_movement_index = 0				# rotate through wind movements
-	stopped_rock_count = 0				# track how many rocks we've dropped into the pile
+	rock_definition_index = 0				# rotate through rock definitions
+	wind_movement_index = 0					# rotate through wind movements
+	stopped_rock_count = 0					# track how many rocks we've dropped into the pile
 
+	cached_sets = dict()						# we need to notice when the cycular pattern starts (keys are frozensets)
+	start_of_cycle = None						# we are indexing by the "stopped rock count"
+	first_repeated_placement = None # we are indexing by the "stopped rock count"
+	last_pile_max_y = -1						# keep this to compute the change in pile height from last cycle element back to first
 
-	cached_sets = dict()
-	start_of_cycle = None
-	first_repeated_placement = None
-
-	# part 1: 2022 
-	# part 2: 1_000_000_000_000
-	while stopped_rock_count < 2022:
+	while stopped_rock_count < ROCK_COUNT:
 		starting_position = complex(STARTING_X_COORD, pile_max_y + 4)
 		falling_rock = compute_rock_location(starting_position, rock_definitions[rock_definition_index])
-
-		# TODO get top N rows of rock pile, and normalize their coordinates
-		normalized_set, y_min = normalize_set(rock_pile, starting_position)
-		# print_chamber(normalized_set, compute_rock_location(complex(STARTING_X_COORD, pile_max_y + 4 - y_min), rock_definitions[rock_definition_index]), 30)
+		normalized_set = normalize_set(rock_pile, starting_position)
 
 		if normalized_set in cached_sets:
-			print('-------current')
-			print((stopped_rock_count, pile_max_y))
-			print('-------last')
-			print(cached_sets[normalized_set])
-			print()
 			start_of_cycle = cached_sets[normalized_set][0]
 			first_repeated_placement = stopped_rock_count
 			break
 		else:
-			cached_sets[normalized_set] = (stopped_rock_count, pile_max_y)
-		
+			cached_sets[normalized_set] = (stopped_rock_count, pile_max_y + 1)
+
 		rock_definition_index = (rock_definition_index + 1) % len(rock_definitions)
 
 		rock_is_stopped = False
@@ -134,38 +130,31 @@ if __name__ == "__main__":
 
 			# move down 1
 			candidate_falling_rock = move_rock(falling_rock, DOWN)
+
+			# check stopping conditions
 			if not rock_has_stopped(candidate_falling_rock, rock_pile):
 				falling_rock = candidate_falling_rock
 			else:
 				rock_is_stopped = True
 				stopped_rock_count += 1
+				# TODO could probably get last diff in a cleaner/faster way
+				last_pile_max_y = int(max(rock_pile, key=lambda x: x.imag, default=complex(0j)).imag)
 				rock_pile = rock_pile.union(falling_rock)
 				pile_max_y = int(max(rock_pile, key=lambda x: x.imag).imag)
+	
 
-
-	print(cached_sets.values())
-	print(start_of_cycle)
-	print(first_repeated_placement)
-	cycle_elements = [s for s in cached_sets.values() if s[0] <= first_repeated_placement and s[0] >= start_of_cycle]
+	cycle_elements = [s for s in cached_sets.values() if s[0] >= start_of_cycle]
 	cycle_length = len(cycle_elements)
-	print()
-	cycle_diffs = [cycle_elements[i+1][1] - cycle_elements[i][1] for i in range(cycle_length - 1)]
-	cycle_pile_height = sum(cycle_diffs) + 1
-	print()
 
-	rocks_to_go = 2022 - start_of_cycle
+	cycle_diffs = [cycle_elements[i+1][1] - cycle_elements[i][1] for i in range(cycle_length - 1)]
+	cycle_diffs.append(pile_max_y - last_pile_max_y) # TODO could get this last diff in a cleaner way?
+	cycle_pile_height = sum(cycle_diffs)
+
+	rocks_to_go = ROCK_COUNT - first_repeated_placement
 	cycles_needed = rocks_to_go // cycle_length
 	remainder = rocks_to_go % cycle_length
 
 	# part 1 (answer: 3127)
-	# part 2 (answer: )
-	yy = (pile_max_y + 1) + cycles_needed * cycle_pile_height + sum(cycle_diffs[:remainder])
-
-	print(yy)
-
-	# TODO LCM doesn't seem to be sufficient
-	# TODO need to find clean way to detect when we have a rock that will dropped in a way we've already seen
-	# rock_definition_index
-	# wind_movement_index
-	# existing pile (beware of concave sides of rock pile - aka overhangs)
-	# break when a combo of above 3 has already been observed?
+	# part 2 (answer: 1542941176480)
+	answer = (pile_max_y + 1) + cycles_needed * cycle_pile_height + sum(cycle_diffs[:remainder])
+	print(f'answer: {answer}')
