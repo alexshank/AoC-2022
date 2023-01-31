@@ -1,6 +1,14 @@
 from helpers import load_data_grouped
 from visualize import pc
-import time
+
+# TODO not used
+MOVEMENT_MASKS = {
+	'U': 0 + 1j,
+	'D': 0 - 1j,
+	'L': -1 + 0j,
+	'R': 1 + 0j
+}
+
 
 SIDES = {
 	0: (50, 99, 150, 199),
@@ -11,6 +19,58 @@ SIDES = {
 	5: (0, 49, 0, 49)
 }
 
+SIDE_LENGTH = 50
+
+def orient_right(relative_coord, x_coord):
+	return complex(x_coord, SIDE_LENGTH - relative_coord.real - 1)
+
+def orient_left(relative_coord, y_coord):
+	return complex(SIDE_LENGTH - relative_coord.imag - 1, y_coord)
+
+def orient_flip(relative_coord, x_coord):
+	return complex(x_coord, SIDE_LENGTH - relative_coord.imag - 1)
+
+# if we go from side k to side j, find out what transition we need to make
+transition_matrix = {
+	# TODO could use partial function application here :)
+	(0, 4): (orient_flip, 2, SIDES[4][0]), # flip orientation, increment direction index twice, use side 4 x_min
+	(0, 5): (orient_right, 1, SIDES[5][0]),
+
+	(1, 2): (orient_right, 1, SIDES[2][1]),
+	(1, 3): (orient_flip, 2, SIDES[3][1]),
+
+	(2, 1): (orient_left, -1, SIDES[1][2]),
+	(2, 4): (orient_left, -1, SIDES[4][3]),
+
+	(3, 1): (orient_flip, 2, SIDES[1][1]),
+	(3, 5): (orient_right, 1, SIDES[5][1]),
+
+	(4, 0): (orient_flip, 2, SIDES[0][0]),
+	(4, 2): (orient_right, 1, SIDES[2][0]),
+
+	(5, 0): (orient_left, -1, SIDES[0][3]),
+	(5, 3): (orient_left, -1, SIDES[3][2])
+}
+
+# keep track of sides you transition to going out of current square left, up, right, or down
+SIDE_TO_SIDE = {
+	0: [4, 5, 1, 2],
+	1: [0, 5, 3, 2],
+	2: [4, 0, 1, 3],
+	3: [4, 2, 1, 5],
+	4: [0, 2, 3, 5],
+	5: [0, 4, 3, 1],
+}
+
+def compute_destination_side(candidate_relative_coord, current_side):
+	if candidate_relative_coord.real < 0:
+		return SIDE_TO_SIDE[current_side][0]
+	elif candidate_relative_coord.real == SIDE_LENGTH:
+		return SIDE_TO_SIDE[current_side][2]
+	elif candidate_relative_coord.imag < 0:
+		return SIDE_TO_SIDE[current_side][3]
+	elif candidate_relative_coord.imag == SIDE_LENGTH:
+		return SIDE_TO_SIDE[current_side][1]
 
 def compute_limits(board, x, y):
 	row_keys = {key for key in board.keys() if key.imag == y}
@@ -27,8 +87,6 @@ def can_move_again(board, direction, current_location):
 	
 	limits = compute_limits(board, current_location.real, current_location.imag)
 
-	# print(current_location)
-	# print(limits)
 	match direction:
 		case 'R':
 			test_location = current_location + complex(1, 0)
@@ -88,7 +146,6 @@ def print_board(x_board, current_location, arrow, side_number = 0):
 	# # view window of y's
 	# min_y = max(min_y, int(current_location.imag) - 20)
 	# max_y = min(max_y, int(current_location.imag) + 20)
-
 	for y in reversed(range(min_y, max_y + 1)):
 		print(f'{(max_y - y + 1):03} {y:03}', end='')
 		for x in range(min_x - 1, max_x + 1):
@@ -101,6 +158,7 @@ def print_board(x_board, current_location, arrow, side_number = 0):
 			else:
 				print(' ', end='')
 		print()
+
 
 if __name__ == "__main__":
 	data, instructions = load_data_grouped("day-22-input.txt")
@@ -116,13 +174,7 @@ if __name__ == "__main__":
 			if data[data_y_index][x] != ' ':
 				board[complex(x, y)] = data[data_y_index][x]
 
-	masks = {
-		'U': 0 + 1j,
-		'D': 0 - 1j,
-		'L': -1 + 0j,
-		'R': 1 + 0j
-	}
-
+	# parse instructions in to ['R42', 'L43', ...]
 	results = ['R' + instructions[:2]]
 	instructions = instructions[2:]
 	previous_index = 0
@@ -137,15 +189,14 @@ if __name__ == "__main__":
 	x_min = min({x for x in board.keys() if x.imag == y_max}, key=lambda x: x.real).real
 	current_location = complex(x_min, y_max)
 
-	direction_index = -1 # initialize based on known input
+	# TODO also maintain relative position
+	relative_location = complex(SIDES[0][1], SIDES[0][3])
+
+	direction_index = -1 # initialize to U since first instruction is to turn to R
 	directions = ['R', 'D', 'L', 'U']
 	arrows = ['>', 'V', '<', '^']
-	display_board = board.copy()
+	# display_board = board.copy()
 	for instruction in results:
-
-		break
-
-
 
 		temp = list(instruction)
 		direction = temp[0]
@@ -156,22 +207,14 @@ if __name__ == "__main__":
 		steps = int(''.join(temp[1:]))
 
 		for i in range(steps):
-			display_board[current_location] = arrows[direction_index % 4]
+			# display_board[current_location] = arrows[direction_index % 4]
 			new_position = can_move_again(board, directions[direction_index % 4], current_location)
 			if new_position == current_location:
 				break
 			else:
 				current_location = new_position
 
-			# TODO windowing / visualization probably not relevant now
-			# print_board(display_board, current_location, arrows[direction_index % 4])
-			# time.sleep(0.1)
-			# print("\033[J", end="")
-			# print()
-		
-	print_board(display_board, current_location, arrows[direction_index % 4], 5)
-
-	# TODO should have called direction_index direction_counter
+	
 	# part 1 (answer: 165094)
 	print(int(1000 * (row_count - (current_location.imag)) + 4 * (current_location.real + 1) + (direction_index % 4)))
 
