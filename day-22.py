@@ -63,6 +63,7 @@ SIDE_TO_SIDE = {
 }
 
 def compute_destination_side(candidate_relative_coord, current_side):
+	print(f'candidate rel: {candidate_relative_coord} : {current_side}')
 	if candidate_relative_coord.real < 0:
 		return SIDE_TO_SIDE[current_side][0]
 	elif candidate_relative_coord.real == SIDE_LENGTH:
@@ -86,24 +87,38 @@ def compute_limits(board, x, y):
 
 	return min_x, max_x, min_y, max_y
 
+def get_new_rel_location(abs_coord, side):
+	return complex(abs_coord.real - SIDES[side][0], abs_coord.imag - SIDES[side][2],)
+
 def can_move_again(board, direction, current_abs_location, current_side, relative_location, direction_index):
 	
-	print(current_abs_location)
-	print(direction)
-	print(current_side)
-	print(relative_location)
-	print(direction_index)
+	print(f'current abs: {current_abs_location}')
+	print(f'direction: {direction}')
+	print(f'current side: {current_side}')
+	print(f'relative loc: {relative_location}')
+	print(f'direction index: {direction_index}')
 
 	test_relative_location = relative_location + MOVEMENT_MASKS[direction]
 
 	test_destination_side = compute_destination_side(test_relative_location, current_side)
+	print(f'test destination side: {test_destination_side}')
 
-	if (test_destination_side, current_side) not in transition_matrix:
+	print(f'tuple: {(current_side, test_destination_side)}')
+
+	if (current_side, test_destination_side) not in transition_matrix:
 		# no transformation needed
 		direction_increment = 0
-		test_transformed_relative_location = test_relative_location
+		test_transformed_relative_location = get_new_rel_location(current_abs_location + MOVEMENT_MASKS[direction], test_destination_side)
+
+		# TODO still need to update relative coords here!!!
+
+		print(f'Going from/to {(current_side, test_destination_side)} without transformation')
 	else:
+		print(f'Going from/to {(current_side, test_destination_side)}')
 		orient_func, direction_increment, orient_arg_1 = transition_matrix[(current_side, test_destination_side)]
+		print(f'orient func: {orient_func}')
+		print(f'direction_increment: {direction_increment}')
+		print(f'orient arg 1: {orient_arg_1}')
 		test_transformed_relative_location = orient_func(test_relative_location, orient_arg_1)
 
 	test_abs_location = complex(SIDES[test_destination_side][0], SIDES[test_destination_side][2])
@@ -127,7 +142,7 @@ def in_range(complex_point, limits):
 	result = result and complex_point.imag <= limits[3]
 	return result
 
-def print_board(x_board, current_location, arrow, side_number = 0):
+def print_board(x_board, current_location, arrow, side_number):
 	min_x = int(min(x_board.keys(), key=lambda x: x.real).real)
 	max_x = int(max(x_board.keys(), key=lambda x: x.real).real)
 	min_y = int(min(x_board.keys(), key=lambda x: x.imag).imag)
@@ -137,13 +152,14 @@ def print_board(x_board, current_location, arrow, side_number = 0):
 	# min_y = max(min_y, int(current_location.imag) - 20)
 	# max_y = min(max_y, int(current_location.imag) + 20)
 
+	print(f'current location while printing board: {current_location}')
 	for y in reversed(range(min_y, max_y + 1)):
 		print(f'{(max_y - y + 1):03} {y:03}', end='')
 		for x in range(min_x - 1, max_x + 1):
-			if in_range(complex(x, y), SIDES[side_number]):
-				pc(x_board[complex(x, y)], 'blue', end='')
-			elif complex(x, y) == current_location:
+			if complex(x, y) == current_location:
 				pc(arrow, 'green', end='')
+			elif in_range(complex(x, y), SIDES[side_number]):
+				pc(x_board[complex(x, y)], 'blue', end='')
 			elif complex(x, y) in x_board.keys():
 				pc(x_board[complex(x, y)], 'yellow', end='')
 			else:
@@ -191,7 +207,7 @@ if __name__ == "__main__":
 	direction_index = -1 # initialize to U since first instruction is to turn to R
 	directions = ['R', 'D', 'L', 'U']
 	arrows = ['>', 'V', '<', '^']
-	for instruction in results:
+	for counter, instruction in enumerate(results):
 
 		temp = list(instruction)
 		direction = temp[0]
@@ -204,9 +220,6 @@ if __name__ == "__main__":
 		for i in range(steps):
 			display_board[current_abs_location] = arrows[direction_index % 4]
 
-
-			print_board(display_board, current_abs_location, arrows[direction_index % 4])
-
 			# TODO may need to get back the new direction index and current side
 			new_abs_position, new_rel_position, new_direction_index, new_side = can_move_again(board, directions[direction_index % 4], current_abs_location, current_side, relative_location, direction_index)
 			if new_abs_position == current_abs_location:
@@ -216,6 +229,12 @@ if __name__ == "__main__":
 				relative_location = new_rel_position
 				direction_index = new_direction_index
 				current_side = new_side
+			
+		print_board(display_board, current_abs_location, arrows[direction_index % 4], current_side)
+
+		if counter == 600:
+			break
+
 
 	
 	# part 1 (answer: 165094)
