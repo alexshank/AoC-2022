@@ -1,14 +1,12 @@
 from helpers import load_data_grouped
 from visualize import pc
 
-# TODO not used
 MOVEMENT_MASKS = {
 	'U': 0 + 1j,
 	'D': 0 - 1j,
 	'L': -1 + 0j,
 	'R': 1 + 0j
 }
-
 
 SIDES = {
 	0: (50, 99, 150, 199),
@@ -22,13 +20,19 @@ SIDES = {
 SIDE_LENGTH = 50
 
 def orient_right(relative_coord, x_coord):
-	return complex(x_coord, SIDE_LENGTH - relative_coord.real - 1)
+	return complex(x_coord % SIDE_LENGTH, SIDE_LENGTH - relative_coord.real - 1)
 
 def orient_left(relative_coord, y_coord):
-	return complex(SIDE_LENGTH - relative_coord.imag - 1, y_coord)
+	return complex(SIDE_LENGTH - relative_coord.imag - 1, y_coord % SIDE_LENGTH)
 
 def orient_flip(relative_coord, x_coord):
-	return complex(x_coord, SIDE_LENGTH - relative_coord.imag - 1)
+	return complex(x_coord % SIDE_LENGTH, SIDE_LENGTH - relative_coord.imag - 1)
+
+def translate_1_to_5(relative_coord, garbage):
+	return complex(relative_coord.real % SIDE_LENGTH, 0)
+
+def translate_5_to_1(relative_coord, garbage):
+	return complex(relative_coord.real, SIDE_LENGTH - 1)
 
 # if we go from side k to side j, find out what transition we need to make
 transition_matrix = {
@@ -49,7 +53,11 @@ transition_matrix = {
 	(4, 2): (orient_right, 1, SIDES[2][0]),
 
 	(5, 0): (orient_left, -1, SIDES[0][3]),
-	(5, 3): (orient_left, -1, SIDES[3][2])
+	(5, 3): (orient_left, -1, SIDES[3][2]),
+
+	# special cases?
+	(1, 5): (translate_1_to_5, 0, None),
+	(5, 1): (translate_5_to_1, 0, None)
 }
 
 # keep track of sides you transition to going out of current square left, up, right, or down
@@ -109,8 +117,6 @@ def can_move_again(board, direction, current_abs_location, current_side, relativ
 		# no transformation needed
 		direction_increment = 0
 		test_transformed_relative_location = get_new_rel_location(current_abs_location + MOVEMENT_MASKS[direction], test_destination_side)
-
-		# TODO still need to update relative coords here!!!
 
 		print(f'Going from/to {(current_side, test_destination_side)} without transformation')
 	else:
@@ -230,14 +236,17 @@ if __name__ == "__main__":
 				direction_index = new_direction_index
 				current_side = new_side
 			
-		print_board(display_board, current_abs_location, arrows[direction_index % 4], current_side)
+		# print_board(display_board, current_abs_location, arrows[direction_index % 4], current_side)
 
-		if counter == 600:
-			break
+		# if counter == 600:
+		# 	break
 
 
+	# TODO use the nice printing function for an animation
+	# TODO make solution generic so both part 1 and part 2 can be solved
 	
 	# part 1 (answer: 165094)
+	# part 2 (answer: 95316)
 	print(int(1000 * (row_count - (current_abs_location.imag)) + 4 * (current_abs_location.real + 1) + (direction_index % 4)))
 
 
