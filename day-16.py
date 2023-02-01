@@ -5,11 +5,11 @@ NO_PRIOR = -1			 		 # at start of dijstra, each vertex has no path back to sourc
 STARTING_VALVE = 'AA'  # starting vertex for given problem
 
 # util functions for Dijsktra's algorithm
-def closest_unvisted_vertex(distances, visited):
+def closest_unvisted_unactivated_vertex(distances, visited, activated):
 	min_distance = MAX_DISTANCE 
 	min_vertex = None	# there could be no reachable, unvisited vertices
 	for v in vertex_set:
-		if distances[v] < min_distance and visited[v] == False:
+		if distances[v] < min_distance and visited[v] == False and activated[v] == False:
 			min_distance = distances[v]
 			min_vertex = v
 	return min_vertex
@@ -38,7 +38,7 @@ def build_shortest_path(priors, source_vertex, destination_vertex):
 		return path
 
 # compute shortest paths and shortest distances to every vertex in graph
-def dijkstra(source, vertex_set, edge_set):
+def dijkstra(source, vertex_set, edge_set, activated):
 	distances = {vertex: MAX_DISTANCE for vertex in vertex_set}
 	distances[source] = 0
 	visited = {vertex: False for vertex in vertex_set}
@@ -46,7 +46,8 @@ def dijkstra(source, vertex_set, edge_set):
 
 	# algorithm must consider all vertices to complete
 	for _ in range(len(vertex_set)):
-		u = closest_unvisted_vertex(distances, visited)
+		# TODO implement
+		u = closest_unvisted_unactivated_vertex(distances, visited, activated)
 
 		# break early if there's no reachable, reachable vertices
 		if u == None: break
@@ -83,8 +84,40 @@ if __name__ == "__main__":
 			if (source, destination, 1) not in edge_set and (destination, source, 1) not in edge_set:
 				edge_set.add((source, destination, 1))
 
-	# print starting shortest paths
-	print(dijkstra(STARTING_VALVE, vertex_set, edge_set))
+	# TODO add logic to "contract" graph by removing 0 flow rate vertices
+
+
+	# find greedy solution
+	time_left = 30
+	current_location = STARTING_VALVE
+	running_total = 0
+	activated_valve_set = {vertex: False for vertex in vertex_set}
+	while time_left > 0:
+
+		shortest_paths = dijkstra(current_location, vertex_set, edge_set, activated_valve_set)
+
+		max_cumulative_flow = -1
+		max_next_destination = None
+		max_next_distance = None
+		for k, v in shortest_paths.items():
+			cumulative_val = (time_left - v[1] - 1) * valve_flow_rates[k]
+			if cumulative_val > max_cumulative_flow:
+				max_cumulative_flow = cumulative_val
+				max_next_destination = k
+				max_next_distance = v[1]
+
+		time_left = time_left - max_next_distance - 1
+		running_total += max_cumulative_flow
+		current_location = max_next_destination
+		activated_valve_set[max_next_destination] = True
+
+		print()
+		print(time_left)
+		print(max_next_destination)
+		print(max_cumulative_flow)
+
+	print(running_total)
+	
 		
 
 
