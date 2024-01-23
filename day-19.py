@@ -28,7 +28,7 @@ def time_to_build_robot(blueprint, robot_resource_type, time_left, resource_coun
 	robot_blueprint = blueprint[robot_resource_type]
 
 	# if already have the resources to build robot, return early
-	if robot_blueprint <= resource_counts:
+	if lessThanOrEqualT(robot_blueprint, resource_counts):
 		time_cache[cache_key] = time_left - 1
 		return time_left - 1
 	
@@ -36,12 +36,12 @@ def time_to_build_robot(blueprint, robot_resource_type, time_left, resource_coun
 	# check if we have existing robots that can eventually mine us the resources for the new robot
 	required_resource_types = {i for i in range(4) if robot_blueprint[i] > 0 and robot_blueprint[i] > resource_counts[i]}
 	obtainable_resource_types = {i for i in range(4) if robot_counts[i] > 0}
-	if obtainable_resource_types < required_resource_types:
+	if obtainable_resource_types != required_resource_types:
 		time_cache[cache_key] = None
 		return None
 	
 	# compute how many time steps it will take to acquire enough resources to build the new robot
-	resource_differences = tuple([x - y for x, y in zip(robot_blueprint, resource_counts)])
+	resource_differences = subT(robot_blueprint, resource_counts)
 	time_deltas = [
 		ceil(resource_differences[required_resource] / robot_counts[required_resource])
 		for required_resource 
@@ -50,6 +50,25 @@ def time_to_build_robot(blueprint, robot_resource_type, time_left, resource_coun
 	result = time_left - max(time_deltas)
 	time_cache[cache_key] = result
 	return result
+
+
+"""
+tuple utility functions
+"""
+def addT(t1, t2):
+	return tuple(x + y for x, y in zip(t1, t2))
+
+
+def subT(t1, t2):
+	return tuple(x - y for x, y in zip(t1, t2))
+
+
+def scaleT(t1, scalar):
+	return tuple(x * scalar for x in t1)
+
+
+def lessThanOrEqualT(t1, t2):
+	return all(x <= y for x, y in zip(t1, t2))
 
 
 # recursively run simulation and return the maximum number of geodes that could be mined
@@ -84,26 +103,26 @@ def get_max_geodes(blueprint, time_left, resource_counts, robot_counts):
 		if child_time_left == None or child_time_left < 1:
 			continue
 
-		# TODO may be innefficient to return whole new object in the += call?
 		# add resources, new robot isn't available to mine resources until next time step 
-		resource_counts += robot_counts * (time_left - child_time_left) 
-		robot_counts += tuple_mask
+		child_resources = scaleT(robot_counts, (time_left - child_time_left))
+		resource_counts = addT(resource_counts, child_resources)
+		robot_counts = addT(robot_counts, tuple_mask)
 
 		# remove the resources needed for newly built robot
-		resource_counts = tuple([x - y for x, y in zip(resource_counts, blueprint[robot_resource_type])])
+		resource_counts = subT(resource_counts, blueprint[robot_resource_type])
 
 		# make recursive call
 		child_geodes = get_max_geodes(blueprint, child_time_left, resource_counts, robot_counts)
 		all_child_geodes.append(child_geodes)
 
 		# add back resources needed for newly built robot
-		resource_counts += blueprint[robot_resource_type]
+		resource_counts = addT(resource_counts, blueprint[robot_resource_type])
 
 		# remove robot that was just built
-		robot_counts = tuple([x - y for x, y in zip(robot_counts, tuple_mask)])
+		robot_counts = subT(robot_counts, tuple_mask)
 
 		# remove resources that were mined this time step
-		resource_counts = tuple([x - y for x, y in zip(resource_counts, robot_counts * (time_left - child_time_left))])
+		resource_counts = subT(resource_counts, child_resources)
 
 
 	result = current_geodes if len(all_child_geodes) == 0 else current_geodes + max(all_child_geodes)
@@ -143,6 +162,7 @@ if __name__ == "__main__":
 
 	start_time = time.time()
 	print(f"Start time: {start_time}")
+	print()
 
 	answer_1 = 0
 	for i, blueprint in enumerate(blueprints):
@@ -156,14 +176,17 @@ if __name__ == "__main__":
 
 		max_geodes = get_max_geodes(blueprint, TOTAL_TIME, resource_counts, robot_counts)
 		print(f"Geodes for blueprint {i + 1}: {max_geodes}")
+		print()
 
 		answer_1 += (i + 1) * max_geodes
 	
 	end_time = time.time()
 	print(f"End time: {end_time}")
+	print()
 
 	elapsed_time = end_time - start_time
 	print(f"Elapsed time: {elapsed_time} seconds.")
+	print()
 
 	print(f"Answer 1: {answer_1}")
 	print()
