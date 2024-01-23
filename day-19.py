@@ -1,12 +1,14 @@
 from helpers import load_data
 from math import ceil
+import time
 
 # TODO could make more efficient with an array data structure?
 RESOURCE_TYPES = ['geode', 'obsidian', 'clay', 'ore']
-TOTAL_TIME = 24
+TOTAL_TIME = 12 # TODO put back to 24
 
 # TODO move cache out of global space
 cache = {}	
+time_cache = {}	
 
 """
 Helper class for custom addition and multiplication operators
@@ -97,17 +99,26 @@ class ResourceSet:
 		return f"ore:{self.ore}:obsidian:{self.obsidian}:clay:{self.clay}:geode:{self.geode}"
 
 
+# TODO may benefit from caching as well
 def time_to_build_robot(blueprint, robot_resource_type, time_left, resource_counts, robot_counts):
+	# cache recursive results
+	cache_key = f"{robot_resource_type}-{time_left}-{resource_counts}-{robot_counts}"
+	if cache_key in time_cache:
+		return time_cache[cache_key]
+
+
 	robot_blueprint = blueprint[robot_resource_type]
 
 	# if already have the resources to build robot, return early
-	if resource_counts <= robot_blueprint:
+	if robot_blueprint <= resource_counts:
+		time_cache[cache_key] = time_left - 1
 		return time_left - 1
 	
 	# check if we have existing robots that can eventually mine us the resources for the new robot
 	required_resource_types = {resource_type for resource_type in RESOURCE_TYPES if robot_blueprint.get_resource(resource_type) > 0 and robot_blueprint.get_resource(resource_type) > resource_counts.get_resource(resource_type)}
 	obtainable_resource_types = {resource_type for resource_type in required_resource_types if robot_counts.get_resource(resource_type) > 0}
-	if obtainable_resource_types <= required_resource_types:
+	if obtainable_resource_types < required_resource_types:
+		time_cache[cache_key] = None
 		return None
 	
 	# compute how many time steps it will take to acquire enough resources to build the new robot
@@ -117,7 +128,9 @@ def time_to_build_robot(blueprint, robot_resource_type, time_left, resource_coun
 		for required_resource 
 		in required_resource_types
 	]
-	return time_left - max(time_deltas)
+	result = time_left - max(time_deltas)
+	time_cache[cache_key] = result
+	return result
 
 
 # recursively run simulation and return the maximum number of geodes that could be mined
@@ -196,20 +209,33 @@ if __name__ == "__main__":
 	lines = load_data("day-19-test-input.txt")
 	blueprints = build_blueprint_dictionaries(lines)
 
+
+
+
+	start_time = time.time()
+	print(f"Start time: {start_time}")
+
 	answer_1 = 0
 	for i, blueprint in enumerate(blueprints):
 		print(f"Blueprint {i + 1} of {len(blueprints)}.")
 		cache = {}	
+		time_cache = {}	
 
 		resource_counts = ResourceSet()
 		robot_counts = ResourceSet()
 		robot_counts.add_to_resource('ore', 1)
 
 		temp = get_max_geodes(blueprint, TOTAL_TIME, resource_counts, robot_counts)
-		print(f"Temp: {temp}")
+		print(f"Temp {i}: {temp}")
 
 		answer_1 += (i + 1) * temp
 	
+	end_time = time.time()
+	print(f"End time: {end_time}")
+
+	elapsed_time = end_time - start_time
+	print(f"Elapsed time: {elapsed_time} seconds.")
+
 	print(f"Answer 1: {answer_1}")
 	print()
 
