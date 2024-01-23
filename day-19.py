@@ -4,11 +4,16 @@ import time
 
 # TODO could make more efficient with an array data structure?
 RESOURCE_TYPES = ['geode', 'obsidian', 'clay', 'ore']
-TOTAL_TIME = 12 # TODO put back to 24
+TOTAL_TIME = 24
 
 # TODO move cache out of global space
 cache = {}	
 time_cache = {}	
+best_cache = {i: 0 for i in range(25)}
+
+# the triangle numbers for getting geode upper bounds
+NATURAL_NUMBERS = [i + 1 for i in range(25)]
+TRIANGULAR_NUMBERS = [sum(NATURAL_NUMBERS[:i]) for i in range(1, 25)]
 
 """
 Helper class for custom addition and multiplication operators
@@ -135,6 +140,7 @@ def time_to_build_robot(blueprint, robot_resource_type, time_left, resource_coun
 
 # recursively run simulation and return the maximum number of geodes that could be mined
 def get_max_geodes(blueprint, time_left, resource_counts, robot_counts):
+	# TODO make key smaller, also maybe include blueprint?
 	# cache recursive results
 	cache_key = f"{time_left}-{resource_counts}-{robot_counts}"
 	if cache_key in cache:
@@ -142,15 +148,21 @@ def get_max_geodes(blueprint, time_left, resource_counts, robot_counts):
 
 	# base case: we've run out of time, return the geodes collected at this final time step
 	if time_left == 1:
-		return robot_counts.get_resource('geode')
+		result = robot_counts.get_resource('geode')
+		cache[cache_key] = result
+		return result
+
+	# TODO where should this check actually occur?
+	# compute absolute upper bound of geodes we could get
+	current_geodes = robot_counts.get_resource('geode')
+	geode_upper_bound = current_geodes + (time_left * robot_counts.get_resource('geode')) + TRIANGULAR_NUMBERS[time_left - 1]
+	if geode_upper_bound < best_cache[time_left]:
+		result = 0
+		cache[cache_key] = result
+		return result
 
 	all_child_geodes = []
 	for robot_resource_type in RESOURCE_TYPES:
-
-		# TODO alternative, possibly smaller, problem space would be: "which type of robot do we want to make next?"
-		# TODO we would then jump ahead X states until we could build the desired robot (and probably avoid a lot of recursion cases)
-		# TODO need to compute time left, resource counts, and robot counts
-
 		# returns None if not possible to build
 		child_time_left = time_to_build_robot(blueprint, robot_resource_type, time_left, resource_counts, robot_counts)
 
@@ -178,10 +190,15 @@ def get_max_geodes(blueprint, time_left, resource_counts, robot_counts):
 
 		# remove resources that were mined this time step
 		resource_counts -= robot_counts * (time_left - child_time_left)
-
-	current_geodes = robot_counts.get_resource('geode')
+	
 	result = current_geodes if len(all_child_geodes) == 0 else current_geodes + max(all_child_geodes)
 	cache[cache_key] = result
+
+	# update the most geodes we've ever found at this time step
+	if result > best_cache[time_left]:
+		print(f"Updating best possible to {result} for {time_left}")
+		best_cache[time_left] = result
+
 	return result
 
 # returns array of dictionaries like blueprint['ore']['obsidian'] = 5
@@ -220,13 +237,14 @@ if __name__ == "__main__":
 		print(f"Blueprint {i + 1} of {len(blueprints)}.")
 		cache = {}	
 		time_cache = {}	
+		best_cache = {i: 0 for i in range(25)}
 
 		resource_counts = ResourceSet()
 		robot_counts = ResourceSet()
 		robot_counts.add_to_resource('ore', 1)
 
 		temp = get_max_geodes(blueprint, TOTAL_TIME, resource_counts, robot_counts)
-		print(f"Temp {i}: {temp}")
+		print(f"Geodes for blueprint {i + 1}: {temp}")
 
 		answer_1 += (i + 1) * temp
 	
