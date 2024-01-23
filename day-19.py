@@ -10,14 +10,7 @@ cache = {}
 Helper class for custom addition and multiplication operators
 """
 class ResourceSet:
-	def __init__(self):
-		self.ore = 0
-		self.obsidian = 0
-		self.clay = 0
-		self.geode = 0
-		
-
-	def __init__(self, resource_dictionary):
+	def __init__(self, resource_dictionary={'ore': 0, 'obsidian': 0, 'clay': 0, 'geode': 0}):
 		self.ore = resource_dictionary['ore']
 		self.obsidian = resource_dictionary['obsidian']
 		self.clay = resource_dictionary['clay']
@@ -37,7 +30,7 @@ class ResourceSet:
 			raise ValueError('Invalid resource.')
 		
 
-	def get_resource(self, resource, amount):
+	def get_resource(self, resource):
 		if resource == 'ore':
 			return self.ore
 		elif resource == 'obsidian':
@@ -61,50 +54,75 @@ class ResourceSet:
 		else:
 			raise ValueError("Unsupported operand type for +")
 	
-	def __mul__(self, scalar):
-		if isinstance(scalar, int):
+
+	def __sub__(self, other):
+		if isinstance(other, ResourceSet):
 			return ResourceSet({
-				'ore': self.ore * scalar,
-				'obsidian': self.obsidian * scalar,
-				'clay': self.clay * scalar,
-				'geode': self.geode * scalar,
+				'ore': self.ore - other.ore,
+				'obsidian': self.obsidian - other.obsidian,
+				'clay': self.clay - other.clay,
+				'geode': self.geode - other.geode,
+			})
+		else:
+			raise ValueError("Unsupported operand type for -")
+
+
+	def __le__(self, other):
+		if isinstance(other, ResourceSet):
+			return all([
+				self.ore <= other.ore,
+				self.obsidian <= other.obsidian,
+				self.clay <= other.clay,
+				self.geode <= other.geode,
+			])
+		else:
+			raise ValueError("Unsupported operand type for -")
+	
+
+	# note: the integer must be on the right side of the * operator here
+	def __mul__(self, other):
+		if isinstance(other, int):
+			return ResourceSet({
+				'ore': self.ore * other,
+				'obsidian': self.obsidian * other,
+				'clay': self.clay * other,
+				'geode': self.geode * other,
 			})
 		else:
 			raise ValueError("Unsupported operand type for *")
 		
 	def __str__(self):
-		return "Not Implemented."
+		return f"ore: {self.ore}\nobsidian: {self.obsidian}\nclay: {self.clay}\ngeode: {self.geode}"
 
 
 """
 Class to represent the different states of the simulation that need to be considered
 """
 class StatePart1:
-	def __init__(self, blueprint, time_left, resource_counts, robot_counts, robot_type_set):
+	def __init__(self, blueprint, time_left, resource_counts, robot_counts):
 		self.blueprint = blueprint
 		self.time_left = time_left
 		self.resource_counts = resource_counts
 		self.robot_counts = robot_counts
-		# TODO don't think this needs to be a property
-		self.robot_type_set = robot_type_set
 	
-
 	# TODO shouldn't be mixing up self properties and non-self properties. Make pure function
 
 	# find every way we could spend all the current resources to build robots
 	# returns list of dictionaries with number of robots of each resource type that could be built
 	# i.e., [{'ore': 4, 'osidian': 0, ... }, {'ore': 3, 'osidian': 0, ... }, ... ]
-	def get_robot_combinations(self, resource_counts, robot_type_set):
+	def get_robot_count_combinations(self, resource_counts, robot_type_set=[r for r in RESOURCE_TYPES]):
 
+		# TODO fix this jank caching
 		set_string = "-".join([t for t in robot_type_set])
-		resource_string = "-".join([str(k) for k in resource_counts.values()])
+		resource_string = "-".join([str(resource_counts.get_resource(k)) for k in RESOURCE_TYPES])
 		cache_key = f"{set_string}-{resource_string}"
 		if cache_key in cache:
 			return cache[cache_key]
 
-		robot_combinations = []
+		robot_count_combinations = []
 
 		# TODO should not modify this set while iterating over it
+		# TODO think I'm copying this set twice
 		local_robot_type_set = set([s for s in robot_type_set])
 		for robot_type in robot_type_set:
 			robot_costs = self.blueprint[robot_type]
@@ -113,36 +131,38 @@ class StatePart1:
 			i = 1
 			while True:
 
-				can_build = all([(robot_costs[resource_type] * i) <= resource_counts[resource_type] for resource_type in RESOURCE_TYPES])	
+				# check if there's enough resources for this number of robots
+				can_build = (robot_costs * i) <= resource_counts
 				if not can_build:
 					break
 
-				# TODO could move above loop?
-				for resource_type in RESOURCE_TYPES:
-					resource_counts[resource_type] -= robot_costs[resource_type] * i
+				# remove necessary resources
+				resource_counts -= robot_costs * i
 				local_robot_type_set.remove(robot_type)
 
-				child_robot_combinations = self.get_robot_combinations(resource_counts, local_robot_type_set)
+				# recursive call
+				child_robot_count_combinations = self.get_robot_count_combinations(resource_counts, local_robot_type_set)
 
-				# TODO if there's no children... still add
-				if len(child_robot_combinations) == 0:
-					current_combination = {resource_type: 0 for resource_type in RESOURCE_TYPES}
-					current_combination[robot_type] += i # TODO think this can just be equals, not add
-					robot_combinations.append(current_combination)	
+				# if there are no child robot count combinations, still add the current combination
+				if len(child_robot_count_combinations) == 0:
+					current_combination = ResourceSet()
+					current_combination.add_to_resource(robot_type, i)
+					robot_count_combinations.append(current_combination)	
 
-				for child_robot_combination in child_robot_combinations:
-					for resource_type in RESOURCE_TYPES:
-						child_robot_combination[robot_type] += i # TODO think this can just be equals, not add
-					robot_combinations.append(child_robot_combination)
+				# every child combination should also have the current robots added to it
+				for child_robot_count_combination in child_robot_count_combinations:
+					child_robot_count_combination.add_to_resource(robot_type, i)
+					robot_count_combinations.append(child_robot_count_combination)
 
-				for resource_type in RESOURCE_TYPES:
-					resource_counts[resource_type] += robot_costs[resource_type] * i
+				# add resources back that were used for this case
+				resource_counts += robot_costs * i
 				local_robot_type_set.add(robot_type)
 
+				# see if one more robot could have been built with current resources
 				i += 1
 
-		cache[cache_key] = robot_combinations
-		return robot_combinations
+		cache[cache_key] = robot_count_combinations
+		return robot_count_combinations
 		
 
 	# TODO will need caching like before
@@ -154,51 +174,46 @@ class StatePart1:
 
 		child_states = []
 
-		# mine all new resources
-		for robot_type, robot_count in self.robot_counts.items():
-
-			# TODO blueprints should be a dictionary of nested ResourceSet
-			robot_blueprint = self.blueprint[robot_type]
-
-
-			for resource_type in RESOURCE_TYPES:
-				self.resource_counts[resource_type] += self.blueprint[robot_type][resource_type] * robot_count
-
-
 		# TODO any new robots that were built
-		robot_combinations = self.get_robot_combinations(self.resource_counts, self.robot_type_set)
-		print(self.time_left)
-		print(self.resource_counts)
-		print(len(robot_combinations))
-		print()
+		# robot_count_combinations = self.get_robot_count_combinations(self.resource_counts)
+		# print(f"Time: {self.time_left}")
+		# print(f"Current resources")
+		# print(f"---\n{self.resource_counts}\n---")
+		# print(f"Robot combos: {len(robot_count_combinations)}")
+		# print(f"Current robots:")
+		# print(f"---\n{self.robot_counts}\n---")
+		# print()
 
+		robot_count_combinations = []
+		for resource_type in RESOURCE_TYPES:
+			if self.blueprint[resource_type] <= self.resource_counts:
+				new_robot_combination = ResourceSet()
+				new_robot_combination.add_to_resource(resource_type, 1)
+				robot_count_combinations.append(new_robot_combination)
+
+		# mine all new resources (should mine after considering robots that can be built)
+		self.resource_counts += self.robot_counts
 
 		# TODO  innefficient
-		robot_type_set = set([resource_type for resource_type in RESOURCE_TYPES])
-		for robot_count_combination in robot_combinations:
+		for robot_count_combination in robot_count_combinations:
 
+			child_robot_counts = self.robot_counts + robot_count_combination
 
-			robot_counts = {resource_type: self.robot_counts[resource_type] + robot_count_combination[resource_type] for resource_type in RESOURCE_TYPES}
-
-			# TODO probably shouldn't be recomputing this
-			resource_counts = {resource_type: self.resource_counts[resource_type] for resource_type in RESOURCE_TYPES}
+			# remove the resources needed for this robot count combination
+			local_resource_counts = ResourceSet() + self.resource_counts
 			for robot_type in RESOURCE_TYPES:
-				for local_resource_type in RESOURCE_TYPES:
-					resource_counts[local_resource_type] -= robot_count_combination[robot_type] * self.blueprint[robot_type][local_resource_type]
-			child_state = StatePart1(self.blueprint, self.time_left - 1, resource_counts, robot_counts, robot_type_set)
+				local_resource_counts -= self.blueprint[robot_type] * robot_count_combination.get_resource(robot_type)
+
+			# create child state for every combination of robots that could be built
+			child_state = StatePart1(self.blueprint, self.time_left - 1, local_resource_counts, child_robot_counts)
 
 			child_states.append(child_state)
 
-		# build no robots but advance time
-		if len(robot_combinations) == 0:
-			child_states.append(StatePart1(self.blueprint, self.time_left - 1, self.resource_counts, self.robot_counts, self.robot_type_set))
+		# always add child case where we build no robots but advance time
+		child_states.append(StatePart1(self.blueprint, self.time_left - 1, self.resource_counts, self.robot_counts))
 
-		# TODO call combination function
-		# TODO there are no children / candidates at all
-
-		if len(child_states) == 0:
-			print("returning no child states")
-
+		# if len(child_states) > 10:
+		# 	print(f"Returning {len(child_states)} child states at time {self.time_left}.")
 		return child_states
 	
 
@@ -214,12 +229,13 @@ class StatePart1:
 	
 		my_max = current_geodes
 		for i, child_state in enumerate(child_states):
-			if self.time_left == 24:
+
+			if self.time_left == 21:
 				print(f"{i + 1} of {len(child_states)}")
 			
 			temp = current_geodes + child_state.get_max_geodes()
 
-			if self.time_left == 24:
+			if self.time_left == 21:
 				print(f"child geodes: {temp}")
 				print()
 
@@ -241,9 +257,12 @@ def build_blueprint_dictionaries(lines):
 		for robot in robots:
 			robot_type, resource_costs = robot.split(" robot costs ")
 			resource_costs = resource_costs.split(' and ')
+
+			blueprint[robot_type] = ResourceSet()
 			for resource_cost in resource_costs:
 				cost, resource_type = resource_cost.split(" ")
-				blueprint[robot_type][resource_type] += int(cost)
+				blueprint[robot_type].add_to_resource(resource_type, int(cost))
+
 		blueprints.append(blueprint)
 	return blueprints
 
@@ -251,7 +270,6 @@ def build_blueprint_dictionaries(lines):
 if __name__ == "__main__":
 	lines = load_data("day-19-test-input.txt")
 	blueprints = build_blueprint_dictionaries(lines)
-	blueprints = [ResourceSet(b) for b in blueprints]
 
 	for blueprint in blueprints:
 		resource_counts = ResourceSet()
@@ -259,11 +277,13 @@ if __name__ == "__main__":
 		robot_counts = ResourceSet()
 		robot_counts.add_to_resource('ore', 1)
 
-		robot_type_set = set([resource_type for resource_type in RESOURCE_TYPES])
-		state_part_1 = StatePart1(blueprint, TOTAL_TIME, resource_counts, robot_counts, robot_type_set)
+		state_part_1 = StatePart1(blueprint, TOTAL_TIME, resource_counts, robot_counts)
 
-		print(state_part_1.get_max_geodes())
+		print(f"Answer 1: {state_part_1.get_max_geodes()}")
 		
 		print()
+
+		# TODO remove
+		break
 
 
