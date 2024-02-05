@@ -10,47 +10,13 @@ TOTAL_TIME = 24
 
 # various caches for memoizing recursive calls
 cache = {}	
-type_cache = {}	
+log_cache = {}	
 time_cache = {}	
 best_cache = {i: 0 for i in range(25)}
 
 # the triangle numbers for getting geode upper bounds
 NATURAL_NUMBERS = [i + 1 for i in range(25)]
 TRIANGULAR_NUMBERS = [sum(NATURAL_NUMBERS[:i]) for i in range(1, 25)]
-
-
-# determine the next time that a robot could be built based on current robots and resources
-def time_to_build_robot(blueprint, robot_resource_type, time, resource_counts, robot_counts):
-	# cache recursive results
-	cache_key = f"{robot_resource_type}-{time}-{resource_counts}-{robot_counts}"
-	if cache_key in time_cache:
-		return time_cache[cache_key]
-
-	robot_blueprint = blueprint[robot_resource_type]
-
-	# if already have the resources to build robot, return early
-	if lessThanOrEqualT(robot_blueprint, resource_counts):
-		time_cache[cache_key] = time + 1
-		return time + 1
-	
-	# check if we have existing robots that can eventually mine us the resources for the new robot
-	required_resource_types = {i for i in range(4) if robot_blueprint[i] > 0 and robot_blueprint[i] > resource_counts[i]}
-	obtainable_resource_types = {i for i in range(4) if robot_counts[i] > 0}
-	if not required_resource_types.issubset(obtainable_resource_types):
-		time_cache[cache_key] = None
-		return None
-	
-	# compute how many time steps it will take to acquire enough resources to build the new robot
-	resource_differences = subT(robot_blueprint, resource_counts)
-	time_deltas = [
-		ceil(resource_differences[required_resource] / robot_counts[required_resource])
-		for required_resource 
-		in required_resource_types
-	]
-
-	result = time + max(time_deltas)
-	time_cache[cache_key] = result
-	return result
 
 
 """
@@ -72,56 +38,125 @@ def lessThanOrEqualT(t1, t2):
 	return all(x <= y for x, y in zip(t1, t2))
 
 
-# recursively run simulation and return the maximum number of geodes that could be mined
-def get_max_geodes(blueprint, time, resource_counts, robot_counts):
-	# TODO make key smaller, also maybe include blueprint?
+def anyLessThanT(t1, t2):
+	return any(x < y for x, y in zip(t1, t2))
+
+
+def nonzeroT(t1):
+	return tuple(x if x > 0 else 0 for x in t1)
+
+
+
+
+# determine the next time that a robot could be built based on current robots and resources
+def time_to_build_robot(robot_blueprint, time, resource_counts, robot_counts):
 	# cache recursive results
-	cache_key = f"{time}-{resource_counts}-{robot_counts}"
+	cache_key = f"{robot_blueprint}-{time}-{resource_counts}-{robot_counts}"
+	if cache_key in time_cache:
+		return time_cache[cache_key]
+
+	# if already have the resources to build robot, return early
+	if lessThanOrEqualT(robot_blueprint, resource_counts):
+		time_cache[cache_key] = time + 1
+		return time + 1
+	
+	# check if we have existing robots that can eventually mine us the resources for the new robot
+	required_resource_types = {i for i in range(4) if robot_blueprint[i] > 0 and robot_blueprint[i] > resource_counts[i]}
+	obtainable_resource_types = {i for i in range(4) if robot_counts[i] > 0}
+	if not required_resource_types.issubset(obtainable_resource_types):
+		time_cache[cache_key] = None
+		return None
+	
+	# compute how many time steps it will take to acquire enough resources to build the new robot
+	resource_differences = subT(robot_blueprint, resource_counts)
+	time_deltas = [
+		ceil(resource_differences[required_resource] / robot_counts[required_resource])
+		for required_resource 
+		in required_resource_types
+	]
+
+	# needed_time = 0
+	# temp_resources = (0, 0, 0, 0)
+	# while anyLessThanT(temp_resources, resource_differences):
+	# 	temp_resources = addT(temp_resources, robot_counts)
+	# 	needed_time += 1
+
+	# result = time + needed_time
+	result = time + max(time_deltas) + 1
+	time_cache[cache_key] = result
+	return result
+
+
+# recursively run simulation and return the maximum number of geodes that could be mined
+def get_max_geodes(blueprint, time, resource_counts, robot_counts, build_type=None):
+	# cache recursive results
+	cache_key = f"{time}-{resource_counts}-{robot_counts}-{build_type}"
 	if cache_key in cache:
-		return cache[cache_key], type_cache[cache_key]
+		return cache[cache_key], log_cache[cache_key]
 
 	# base case: we've run out of time, return the geodes collected at this final time step
 	if time == 24:
+
+		# TODO we should not ever hit this, because robot would be built in final step and never mine anything
+		raise Exception('Should not reach.')
+
 		result = robot_counts[0] + resource_counts[0]
 		cache[cache_key] = result
 		type_result = [f'Minute {time}: time is 24, returning current geodes + geode robot count: {result}']
-		type_cache[cache_key] = type_result
+		log_cache[cache_key] = type_result
 		return result, type_result
 
 	# compute absolute upper bound of geodes we could get from this current state
+	# this assumes you could build one new geode robot at every remaining time step
 	# trim this branch of the search, since it clearly will not beat the current best
 	current_geodes = resource_counts[0]
 	geode_upper_bound = current_geodes + ((TOTAL_TIME - time) * robot_counts[0]) + TRIANGULAR_NUMBERS[TOTAL_TIME - time]
-	if geode_upper_bound < best_cache[time]:
+	if geode_upper_bound <= best_cache[time]:
 		result = 0
 		cache[cache_key] = result
-		type_result = [f'Minute {time}: dead branch at time {time}, returning arbitrary {result} geodes']
-		type_cache[cache_key] = type_result
+		type_result = [f'Minute {time}: useless branch at time {time}, returning arbitrary {result} geodes']
+		log_cache[cache_key] = type_result
 		return result, type_result
 
+	# start building the relevant robot that was planned for this time step
+	if build_type != None:
+		updated_resource_counts = subT(resource_counts, blueprint[build_type])
+		updated_resource_counts = addT(updated_resource_counts, robot_counts)
+		updated_robot_counts = addT(robot_counts, RESOURCE_MASKS[build_type])
+	else:
+		updated_resource_counts = addT(resource_counts, robot_counts)
+		updated_robot_counts = robot_counts
+
+	# possible robots that could be built and when
+	print(f"At time {time}")
+	print(f"We have {updated_robot_counts} robots")
+	print(f"We have {updated_resource_counts} resources")
+	robot_build_times = []
+	for robot_resource_type in RESOURCE_MASKS.keys():
+		robot_blueprint = blueprint[robot_resource_type]
+		child_time = time_to_build_robot(robot_blueprint, time, updated_resource_counts, updated_robot_counts)
+		robot_build_times.append((robot_resource_type, child_time))
+		print(f"Can build {robot_resource_type} robot at time {child_time}")
+	print()
+	
 	all_child_geodes = []
 	all_child_geodes_type = []
-	for robot_resource_type, tuple_mask in RESOURCE_MASKS.items():
-		# returns None if not possible to build
-		child_time = time_to_build_robot(blueprint, robot_resource_type, time, resource_counts, robot_counts)
-
+	for robot_resource_type, child_time in robot_build_times:
 		# if impossible to build the robot type at all or before time's up, continue
-		if child_time == None or child_time > 24:
+		# if robot built at time 24, it doesn't contribute any mining
+		if child_time == None or child_time > TOTAL_TIME - 1:
 			continue
 
 		# add resources, new robot isn't available to mine resources until ((next time step) + 1)
-		child_resource_counts = scaleT(robot_counts, child_time - time)
-		child_resource_counts = addT(resource_counts, child_resource_counts)
-		# TODO handle the robot creation later
-		child_robot_counts = addT(robot_counts, tuple_mask)
-
-		# remove the resources needed for newly built robot
-		child_resource_counts = subT(child_resource_counts, blueprint[robot_resource_type])
+		newly_mined_resource_counts = scaleT(updated_robot_counts, child_time - time)
+		child_resource_counts = addT(updated_resource_counts, newly_mined_resource_counts)
 
 		# make recursive call
-		child_geodes, child_type = get_max_geodes(blueprint, child_time, child_resource_counts, child_robot_counts)
+		child_geodes, child_type = get_max_geodes(blueprint, child_time, child_resource_counts, updated_robot_counts, robot_resource_type)
+
 		all_child_geodes.append(child_geodes)
-		temp = [f'Minute {time}: will build {robot_resource_type} robot at {child_time}, now have {child_robot_counts} robots, and {child_resource_counts} resources, with {current_geodes} geodes']
+		str_time = lambda s: str(s).rjust(2) if s is not None else ' ' * 8
+		temp = [f'Minute {str_time(time)}: Built {str_time(build_type)} robot at {str_time(time)}, now have {updated_robot_counts} robots, and {updated_resource_counts} resources, with {current_geodes} geodes']
 		temp.extend(child_type)
 		all_child_geodes_type.append(temp)
 
@@ -136,7 +171,7 @@ def get_max_geodes(blueprint, time, resource_counts, robot_counts):
 
 	# update cached results
 	cache[cache_key] = result
-	type_cache[cache_key] = result_type
+	log_cache[cache_key] = result_type
 
 	# update the most geodes we've ever found at this time step
 	if result > best_cache[time]:
@@ -184,7 +219,7 @@ if __name__ == "__main__":
 		resource_counts = (0, 0, 0, 0)
 		robot_counts = (0, 0, 0, 1)
 
-		max_geodes, best_path = get_max_geodes(blueprint, 1, resource_counts, robot_counts)
+		max_geodes, best_path = get_max_geodes(blueprint, 1, resource_counts, robot_counts, None)
 		print(f"Geodes for blueprint {i + 1}: {max_geodes}")
 		print(f"Path:")
 		for event in best_path:
