@@ -18,6 +18,10 @@ best_cache = {i: 0 for i in range(25)}
 NATURAL_NUMBERS = [i + 1 for i in range(25)]
 TRIANGULAR_NUMBERS = [sum(NATURAL_NUMBERS[:i]) for i in range(1, 25)]
 
+# helper functions for printing nicely
+STR_TIME = lambda time: str(time).rjust(2)
+STR_BUILD_TYPE = lambda build_type: build_type + ' ' * (len('obsidian') - len(build_type)) if build_type is not None else ' ' * len('obsidian')
+STR_COUNT_DICT = lambda count_tuple: f"({STR_TIME(count_tuple[0])}, {STR_TIME(count_tuple[1])}, {STR_TIME(count_tuple[2])}, {STR_TIME(count_tuple[3])})"
 
 """
 tuple utility functions
@@ -44,8 +48,6 @@ def anyLessThanT(t1, t2):
 
 def nonzeroT(t1):
 	return tuple(x if x > 0 else 0 for x in t1)
-
-
 
 
 # determine the next time that a robot could be built based on current robots and resources
@@ -128,15 +130,15 @@ def get_max_geodes(blueprint, time, resource_counts, robot_counts, build_type=No
 		updated_robot_counts = robot_counts
 
 	# possible robots that could be built and when
-	print(f"At time {time}")
-	print(f"We have {updated_robot_counts} robots")
-	print(f"We have {updated_resource_counts} resources")
+	print(f"At time {time}...")
+	print(f"We have {STR_COUNT_DICT(updated_robot_counts)} robots")
+	print(f"We have {STR_COUNT_DICT(updated_resource_counts)} resources")
 	robot_build_times = []
 	for robot_resource_type in RESOURCE_MASKS.keys():
 		robot_blueprint = blueprint[robot_resource_type]
 		child_time = time_to_build_robot(robot_blueprint, time, updated_resource_counts, updated_robot_counts)
 		robot_build_times.append((robot_resource_type, child_time))
-		print(f"Can build {robot_resource_type} robot at time {child_time}")
+		print(f"Can build {STR_BUILD_TYPE(robot_resource_type)} robot at time {STR_TIME(child_time)}")
 	print()
 	
 	all_child_geodes = []
@@ -155,15 +157,14 @@ def get_max_geodes(blueprint, time, resource_counts, robot_counts, build_type=No
 		child_geodes, child_type = get_max_geodes(blueprint, child_time, child_resource_counts, updated_robot_counts, robot_resource_type)
 
 		all_child_geodes.append(child_geodes)
-		str_time = lambda s: str(s).rjust(2) if s is not None else ' ' * 8
-		temp = [f'Minute {str_time(time)}: Built {str_time(build_type)} robot at {str_time(time)}, now have {updated_robot_counts} robots, and {updated_resource_counts} resources, with {current_geodes} geodes']
+		temp = [f"Minute {STR_TIME(time)}: Built {STR_BUILD_TYPE(build_type)} robot at {STR_TIME(time)}, now have {STR_COUNT_DICT(updated_robot_counts)} robots, and {STR_COUNT_DICT(updated_resource_counts)} resources, with {STR_TIME(current_geodes)} geodes"]
 		temp.extend(child_type)
 		all_child_geodes_type.append(temp)
 
 	# get best robot choice and resulting geodes
 	if len(all_child_geodes) == 0:
 		result = current_geodes + robot_counts[0] * (TOTAL_TIME - time)
-		result_type = [f'Minute {time}: nothing to build at {time}, returning {result} geodes']
+		result_type = [f'Minute {time}: Nothing to build at {time}, returning {result} geodes']
 	else:
 		result = max(all_child_geodes)
 		result_type_index = max(range(len(all_child_geodes)), key=all_child_geodes.__getitem__)
@@ -232,16 +233,15 @@ if __name__ == "__main__":
 
 		answer_1 += (i + 1) * max_geodes
 
-		# TODO remove
-		break
-	
-	end_time = time.time()
-	print(f"\nEnd time: {end_time}")
-	print()
+		# make sure each blueprint isn't taking a ridiculous amount of time
+		end_time = time.time()
+		elapsed_time = end_time - start_time
+		start_time = end_time
+		print(f"Elapsed time for blueprint {i + 1}: {elapsed_time} seconds.")
+		print()
 
-	elapsed_time = end_time - start_time
-	print(f"Elapsed time: {elapsed_time} seconds.")
-	print()
+		# TODO remove and run on all provided blueprints
+		break
 
 	print(f"Answer 1: {answer_1}")
 	print()
