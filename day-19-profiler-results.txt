@@ -1,160 +1,155 @@
-Start time: 1725049144.080122
+Start time: 1725057099.8395789
 
 Blueprint 1 of 2.
 Max geodes  cache: CacheInfo(hits=103913, misses=474520, maxsize=None, currsize=474520)
 Robot build cache: CacheInfo(hits=113236, misses=545264, maxsize=None, currsize=545264)
-Elapsed time for blueprint 1: 7.040515899658203 seconds.
+Elapsed time for blueprint 1: 4.346441268920898 seconds.
 
 Blueprint 2 of 2.
 Max geodes  cache: CacheInfo(hits=1239479, misses=4220355, maxsize=None, currsize=4220355)
 Robot build cache: CacheInfo(hits=1333656, misses=4888852, maxsize=None, currsize=4888852)
-Elapsed time for blueprint 2: 98.4077661037445 seconds.
+Elapsed time for blueprint 2: 79.62992286682129 seconds.
 
 Answer 1: 33
 
-         173463739 function calls (168768865 primitive calls) in 105.451 seconds
+         51937473 function calls (47242599 primitive calls) in 83.979 seconds
 
    Ordered by: internal time
 
    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-  5434116   19.170    0.000   25.684    0.000 day-19.py:39(lessThanOrEqualT)
-4694875/2   17.183    0.000  104.828   52.414 day-19.py:71(get_max_geodes)
-  9478767   16.511    0.000   22.534    0.000 day-19.py:27(addT)
-  1720252   10.182    0.000   46.264    0.000 day-19.py:94(<listcomp>)
-  2607245    9.888    0.000   11.713    0.000 day-19.py:31(subT)
-  6038265    7.140    0.000   10.598    0.000 day-19.py:35(scaleT)
- 47393835    6.023    0.000    6.023    0.000 day-19.py:28(<genexpr>)
-  5434116    3.843    0.000   36.082    0.000 day-19.py:44(time_to_build_robot)
- 30191325    3.457    0.000    3.457    0.000 day-19.py:36(<genexpr>)
-  5434116    3.262    0.000    6.377    0.000 {built-in method builtins.all}
- 25470765    3.252    0.000    3.252    0.000 day-19.py:40(<genexpr>)
- 13036225    1.825    0.000    1.825    0.000 day-19.py:32(<genexpr>)
-  2554219    0.712    0.000    0.712    0.000 {built-in method builtins.max}
-        4    0.620    0.155    0.620    0.155 {method 'cache_clear' of 'functools._lru_cache_wrapper' objects}
-  6038267    0.537    0.000    0.537    0.000 {method 'append' of 'list' objects}
-   906918    0.503    0.000    0.503    0.000 day-19.py:52(<setcomp>)
-   886995    0.361    0.000    0.473    0.000 day-19.py:60(<listcomp>)
-   906918    0.353    0.000    0.353    0.000 day-19.py:53(<setcomp>)
-  1720252    0.215    0.000    0.215    0.000 {method 'keys' of 'dict' objects}
-  1720259    0.188    0.000    0.188    0.000 {built-in method builtins.len}
-   888543    0.112    0.000    0.112    0.000 {built-in method math.ceil}
-   906918    0.110    0.000    0.110    0.000 {method 'issubset' of 'set' objects}
+4694875/2   34.551    0.000   83.309   41.654 day-19.py:71(get_max_geodes)
+  1720252   18.425    0.000   34.610    0.000 day-19.py:94(<listcomp>)
+  5434116    9.394    0.000   16.184    0.000 day-19.py:44(time_to_build_robot)
+  1720252    5.365    0.000    5.365    0.000 {method 'keys' of 'dict' objects}
+  9478767    4.542    0.000    4.542    0.000 day-19.py:27(addT)
+   906918    2.590    0.000    2.590    0.000 day-19.py:52(<setcomp>)
+  6038265    2.005    0.000    2.005    0.000 day-19.py:35(scaleT)
+  5434116    1.993    0.000    1.993    0.000 day-19.py:39(lessThanOrEqualT)
+  2607245    1.292    0.000    1.292    0.000 day-19.py:31(subT)
+   906918    0.822    0.000    0.822    0.000 day-19.py:53(<setcomp>)
+  2554219    0.785    0.000    0.785    0.000 {built-in method builtins.max}
+        4    0.667    0.167    0.667    0.167 {method 'cache_clear' of 'functools._lru_cache_wrapper' objects}
+  6038267    0.606    0.000    0.606    0.000 {method 'append' of 'list' objects}
+   886995    0.444    0.000    0.583    0.000 day-19.py:60(<listcomp>)
+  1720259    0.229    0.000    0.229    0.000 {built-in method builtins.len}
+   888543    0.139    0.000    0.139    0.000 {built-in method math.ceil}
+   906918    0.125    0.000    0.125    0.000 {method 'issubset' of 'set' objects}
         1    0.001    0.001    0.001    0.001 {built-in method _imp.create_dynamic}
         2    0.000    0.000    0.000    0.000 {built-in method posix.getcwd}
-        1    0.000    0.000    0.000    0.000 {method 'read' of '_io.TextIOWrapper' objects}
-        1    0.000    0.000    0.000    0.000 {method 'read' of '_io.BufferedReader' objects}
-        1    0.000    0.000    0.000    0.000 {built-in method io.open}
+        1    0.000    0.000   83.979   83.979 day-19.py:1(<module>)
         1    0.000    0.000    0.000    0.000 {built-in method io.open_code}
-        1    0.000    0.000  105.451  105.451 day-19.py:1(<module>)
-        2    0.000    0.000    0.000    0.000 {method '__exit__' of '_io._IOBase' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method io.open}
         8    0.000    0.000    0.000    0.000 {built-in method posix.stat}
         5    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1505(find_spec)
+        2    0.000    0.000    0.000    0.000 {method '__exit__' of '_io._IOBase' objects}
+        4    0.000    0.000    0.000    0.000 <string>:1(<lambda>)
         1    0.000    0.000    0.000    0.000 day-19.py:133(build_blueprint_dictionaries)
        14    0.000    0.000    0.000    0.000 {built-in method builtins.print}
-       31    0.000    0.000    0.000    0.000 {method 'split' of 'str' objects}
-        2    0.000    0.000    0.001    0.000 <frozen importlib._bootstrap_external>:1374(_get_spec)
        22    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:121(_path_join)
-        2    0.000    0.000    0.001    0.000 <frozen importlib._bootstrap>:901(_find_spec)
+        2    0.000    0.000    0.001    0.000 <frozen importlib._bootstrap_external>:1374(_get_spec)
        22    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:123(<listcomp>)
-        1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap_external>:1036(get_data)
-       26    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
-        1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap_external>:916(get_code)
-        2    0.000    0.000    0.003    0.001 <frozen importlib._bootstrap>:1002(_find_and_load)
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:166(_get_module_lock)
-        2    0.000    0.000    0.002    0.001 <frozen importlib._bootstrap>:659(_load_unlocked)
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:361(cache_from_source)
-        1    0.000    0.000    0.001    0.001 helpers.py:2(load_data)
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:486(_init_module_attrs)
-        1    0.000    0.000    0.000    0.000 {built-in method marshal.loads}
-        1    0.000    0.000    0.000    0.000 day-19.py:21(<listcomp>)
+        2    0.000    0.000    0.001    0.000 <frozen importlib._bootstrap>:901(_find_spec)
         4    0.000    0.000    0.000    0.000 __init__.py:456(__repr__)
-        6    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1337(_path_importer_cache)
-        2    0.000    0.000    0.000    0.000 functools.py:35(update_wrapper)
+       26    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+        2    0.000    0.000    0.003    0.001 <frozen importlib._bootstrap>:1002(_find_and_load)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:916(get_code)
         4    0.000    0.000    0.000    0.000 {method 'cache_info' of 'functools._lru_cache_wrapper' objects}
-        2    0.000    0.000    0.000    0.000 day-19.py:167(<dictcomp>)
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:87(acquire)
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:112(release)
-       24    0.000    0.000    0.000    0.000 {built-in method builtins.sum}
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:696(spec_from_file_location)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:166(_get_module_lock)
+        1    0.000    0.000    0.000    0.000 {method 'read' of '_io.TextIOWrapper' objects}
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:361(cache_from_source)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1036(get_data)
+        6    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1337(_path_importer_cache)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:486(_init_module_attrs)
+       31    0.000    0.000    0.000    0.000 {method 'split' of 'str' objects}
+        2    0.000    0.000    0.002    0.001 <frozen importlib._bootstrap>:659(_load_unlocked)
+        1    0.000    0.000    0.000    0.000 {method 'read' of '_io.BufferedReader' objects}
        26    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:231(_verbose_message)
-        1    0.000    0.000    0.000    0.000 codecs.py:319(decode)
-        2    0.000    0.000    0.003    0.001 <frozen importlib._bootstrap>:967(_find_and_load_unlocked)
+        1    0.000    0.000    0.000    0.000 day-19.py:21(<listcomp>)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:696(spec_from_file_location)
+        2    0.000    0.000    0.000    0.000 functools.py:35(update_wrapper)
+        1    0.000    0.000    0.000    0.000 {built-in method marshal.loads}
+        2    0.000    0.000    0.000    0.000 day-19.py:167(<dictcomp>)
        24    0.000    0.000    0.000    0.000 {method 'join' of 'str' objects}
+       24    0.000    0.000    0.000    0.000 {built-in method builtins.sum}
+        1    0.000    0.000    0.000    0.000 helpers.py:2(load_data)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:87(acquire)
         8    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:135(_path_stat)
-        3    0.000    0.000    0.001    0.000 <frozen importlib._bootstrap>:220(_call_with_frames_removed)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:560(_classify_pyc)
        46    0.000    0.000    0.000    0.000 {method 'rstrip' of 'str' objects}
-        1    0.000    0.000    0.000    0.000 _bootlocale.py:33(getpreferredencoding)
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:127(_path_split)
+        2    0.000    0.000    0.002    0.001 <frozen importlib._bootstrap>:967(_find_and_load_unlocked)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:112(release)
+        3    0.000    0.000    0.001    0.000 <frozen importlib._bootstrap>:220(_call_with_frames_removed)
         1    0.000    0.000    0.000    0.000 {built-in method _imp.exec_dynamic}
-        1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap_external>:1171(create_module)
-        2    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap>:558(module_from_spec)
-        4    0.000    0.000    0.000    0.000 <string>:1(<lambda>)
         2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1500(_get_spec)
-        2    0.000    0.000    0.000    0.000 functools.py:517(decorating_function)
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:491(_get_cached)
-      2/1    0.000    0.000  105.451  105.451 {built-in method builtins.exec}
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:645(_compile_bytecode)
         9    0.000    0.000    0.000    0.000 {built-in method builtins.hasattr}
-        2    0.000    0.000    0.000    0.000 day-19.py:137(<listcomp>)
-       11    0.000    0.000    0.000    0.000 {method 'rpartition' of 'str' objects}
-        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:79(_unpack_uint32)
-        1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap_external>:844(exec_module)
-        3    0.000    0.000    0.000    0.000 {built-in method time.time}
         5    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:64(_relax_case)
-        8    0.000    0.000    0.000    0.000 {method 'replace' of 'str' objects}
+        2    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap>:558(module_from_spec)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:491(_get_cached)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:560(_classify_pyc)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:127(_path_split)
+       11    0.000    0.000    0.000    0.000 {method 'rpartition' of 'str' objects}
+        1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap_external>:1171(create_module)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:645(_compile_bytecode)
+        1    0.000    0.000    0.000    0.000 _bootlocale.py:33(getpreferredencoding)
+        3    0.000    0.000    0.000    0.000 {built-in method time.time}
+      2/1    0.000    0.000   83.979   83.979 {built-in method builtins.exec}
+        2    0.000    0.000    0.000    0.000 functools.py:517(decorating_function)
+        2    0.000    0.000    0.000    0.000 day-19.py:137(<listcomp>)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:58(__init__)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:79(_unpack_uint32)
         2    0.000    0.000    0.000    0.000 day-19.py:138(<dictcomp>)
         2    0.000    0.000    0.000    0.000 functools.py:478(lru_cache)
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:58(__init__)
-        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:385(cached)
-        3    0.000    0.000    0.000    0.000 {method 'endswith' of 'str' objects}
-        1    0.000    0.000    0.000    0.000 {built-in method _locale.nl_langinfo}
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:185(cb)
+        1    0.000    0.000    0.000    0.000 codecs.py:319(decode)
         2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:156(__enter__)
-       10    0.000    0.000    0.000    0.000 {built-in method _imp.acquire_lock}
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:398(parent)
-        2    0.000    0.000    0.000    0.000 {built-in method _imp.is_builtin}
-        1    0.000    0.000    0.000    0.000 day-19.py:17(<dictcomp>)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:185(cb)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:844(exec_module)
        10    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
-       10    0.000    0.000    0.000    0.000 {built-in method builtins.setattr}
-        2    0.000    0.000    0.001    0.000 <frozen importlib._bootstrap_external>:1406(find_spec)
-        4    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:129(<genexpr>)
-        2    0.000    0.000    0.000    0.000 {method 'pop' of 'dict' objects}
-        6    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:878(__exit__)
-        4    0.000    0.000    0.000    0.000 {built-in method _thread.allocate_lock}
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:145(_path_is_mode_type)
-        1    0.000    0.000    0.000    0.000 codecs.py:309(__init__)
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:351(__init__)
-        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:175(_path_isabs)
-        4    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x106143a38}
-        8    0.000    0.000    0.000    0.000 day-19.py:143(<listcomp>)
-       10    0.000    0.000    0.000    0.000 {built-in method _imp.release_lock}
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:160(__exit__)
+        4    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x109643a38}
+        1    0.000    0.000    0.000    0.000 {built-in method _locale.nl_langinfo}
         1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1155(__init__)
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:736(find_spec)
-        1    0.000    0.000    0.000    0.000 day-19.py:20(<listcomp>)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1179(exec_module)
+       10    0.000    0.000    0.000    0.000 {built-in method builtins.setattr}
+        8    0.000    0.000    0.000    0.000 {method 'replace' of 'str' objects}
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:385(cached)
+        2    0.000    0.000    0.000    0.000 {built-in method _imp.is_builtin}
+        2    0.000    0.000    0.001    0.000 <frozen importlib._bootstrap_external>:1406(find_spec)
+        1    0.000    0.000    0.000    0.000 day-19.py:17(<dictcomp>)
+        4    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:129(<genexpr>)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:145(_path_is_mode_type)
+        6    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:878(__exit__)
         6    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:874(__enter__)
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:154(_path_isfile)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:523(_check_name_wrapper)
+        3    0.000    0.000    0.000    0.000 {method 'endswith' of 'str' objects}
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:736(find_spec)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:175(_path_isabs)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:351(__init__)
+       10    0.000    0.000    0.000    0.000 {built-in method _imp.release_lock}
+       10    0.000    0.000    0.000    0.000 {built-in method _imp.acquire_lock}
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1179(exec_module)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:398(parent)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:160(__exit__)
         3    0.000    0.000    0.000    0.000 {method 'startswith' of 'str' objects}
-        1    0.000    0.000    0.000    0.000 {built-in method _codecs.utf_8_decode}
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:593(_validate_timestamp_pyc)
-        4    0.000    0.000    0.000    0.000 {built-in method _thread.get_ident}
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:811(find_spec)
+        8    0.000    0.000    0.000    0.000 day-19.py:143(<listcomp>)
         1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:35(_new_module)
-        4    0.000    0.000    0.000    0.000 {method 'get' of 'dict' objects}
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:154(_path_isfile)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:811(find_spec)
+        1    0.000    0.000    0.000    0.000 day-19.py:20(<listcomp>)
+        4    0.000    0.000    0.000    0.000 {built-in method _thread.allocate_lock}
+        1    0.000    0.000    0.000    0.000 codecs.py:309(__init__)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:593(_validate_timestamp_pyc)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:523(_check_name_wrapper)
         4    0.000    0.000    0.000    0.000 {method '__exit__' of '_thread.lock' objects}
         1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1077(path_stats)
+        4    0.000    0.000    0.000    0.000 {method 'get' of 'dict' objects}
+        4    0.000    0.000    0.000    0.000 {built-in method _thread.get_ident}
+        1    0.000    0.000    0.000    0.000 {built-in method _codecs.utf_8_decode}
         2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:152(__init__)
-        3    0.000    0.000    0.000    0.000 {built-in method from_bytes}
         2    0.000    0.000    0.000    0.000 {method 'rfind' of 'str' objects}
-        1    0.000    0.000    0.000    0.000 codecs.py:260(__init__)
         1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1006(__init__)
+        3    0.000    0.000    0.000    0.000 {built-in method from_bytes}
+        2    0.000    0.000    0.000    0.000 {method 'update' of 'dict' objects}
         2    0.000    0.000    0.000    0.000 {built-in method _imp.is_frozen}
         4    0.000    0.000    0.000    0.000 {built-in method posix.fspath}
+        1    0.000    0.000    0.000    0.000 codecs.py:260(__init__)
+        2    0.000    0.000    0.000    0.000 {method 'pop' of 'dict' objects}
         1    0.000    0.000    0.000    0.000 helpers.py:2(<module>)
-        2    0.000    0.000    0.000    0.000 {method 'update' of 'dict' objects}
         2    0.000    0.000    0.000    0.000 {method 'lstrip' of 'str' objects}
         2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:406(has_location)
         1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}

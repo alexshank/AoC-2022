@@ -25,19 +25,19 @@ TRIANGULAR_NUMBERS = [sum(NATURAL_NUMBERS[:i]) for i in range(1, 25)]
 tuple utility functions
 """
 def addT(t1: tuple, t2: tuple):
-	return tuple(x + y for x, y in zip(t1, t2))
+	return (t1[0] + t2[0], t1[1] + t2[1], t1[2] + t2[2], t1[3] + t2[3])
 
 
 def subT(t1: tuple, t2: tuple):
-	return tuple(x - y for x, y in zip(t1, t2))
+	return (t1[0] - t2[0], t1[1] - t2[1], t1[2] - t2[2], t1[3] - t2[3])
 
 
 def scaleT(t1: tuple, scalar: int):
-	return tuple(x * scalar for x in t1)
+	return (t1[0] * scalar, t1[1] * scalar, t1[2] * scalar, t1[3] * scalar)
 
 
 def lessThanOrEqualT(t1: tuple, t2: tuple):
-	return all(x <= y for x, y in zip(t1, t2))
+	return t1[0] <= t2[0] and t1[1] <= t2[1] and t1[2] <= t2[2] and t1[3] <= t2[3]
 
 
 # determine the next time that a robot could be built based on current robots and resources
