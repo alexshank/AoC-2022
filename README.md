@@ -21,5 +21,7 @@ Thoughts, observations, and eurekas for each day.
 #### Day 19
 - Created an entire custom class which overloaded +, *, <=, etc. Could have just used a 4-Tuple, which already works intuitively.
 - Main issue is reducing the problem space to a reasonable size. Heuristics are necessary, at least from what I can tell (no obvious, optimal solution that is fast).
+- Needed to add profiling with this command: `python3 -m cProfile -s time day-19.py > day-19-profiler-results.txt`
+    - Turns out tuples have been very inefficient.
 
 ---

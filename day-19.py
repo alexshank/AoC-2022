@@ -40,14 +40,6 @@ def lessThanOrEqualT(t1: tuple, t2: tuple):
 	return all(x <= y for x, y in zip(t1, t2))
 
 
-def anyLessThanT(t1: tuple, t2: tuple):
-	return any(x < y for x, y in zip(t1, t2))
-
-
-def nonzeroT(t1):
-	return tuple(x if x > 0 else 0 for x in t1)
-
-
 # determine the next time that a robot could be built based on current robots and resources
 @lru_cache(maxsize=None)
 def time_to_build_robot(blueprint_index, robot_resource_type, previous_time, updated_resource_counts, updated_robot_counts):
@@ -99,10 +91,14 @@ def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, build_t
 		updated_robot_counts = robot_counts
 
 	# possible robots that could be built and when
-	robot_build_times = []
-	for robot_resource_type in RESOURCE_MASKS.keys():
-		child_time = time_to_build_robot(blueprint_index, robot_resource_type, time, updated_resource_counts, updated_robot_counts)
-		robot_build_times.append((robot_resource_type, child_time))
+	robot_build_times = [
+		(
+			robot_resource_type,
+			time_to_build_robot(blueprint_index, robot_resource_type, time, updated_resource_counts, updated_robot_counts)
+		)
+		for robot_resource_type
+		in RESOURCE_MASKS.keys()
+	]
 
 	all_child_geodes = []
 	for robot_resource_type, child_time in robot_build_times:
