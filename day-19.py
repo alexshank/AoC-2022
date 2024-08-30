@@ -2,6 +2,7 @@ from helpers import load_data
 from math import ceil
 import time
 from functools import lru_cache
+import multiprocessing
 
 
 # TODO could make more efficient with an array data structure?
@@ -14,7 +15,7 @@ TOTAL_TIME = 24
 # tracks most geodes found at each time step
 # gets compared to the max number of possible remaining geodes to reduce search space
 # if most geodes at time t is already more than theoretical max, skip searching that branch
-most_geodes_at_time = {i: 0 for i in range(TOTAL_TIME + 1)}
+MOST_GEODES_AT_TIME = {i: 0 for i in range(TOTAL_TIME + 1)}
 
 # the triangular numbers for getting geode upper bounds
 NATURAL_NUMBERS = [i + 1 for i in range(25)]
@@ -75,7 +76,7 @@ def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, build_t
 	# trim this branch off the search, if it clearly will not beat the current best
 	current_geodes = resource_counts[0]
 	geode_upper_bound = current_geodes + ((TOTAL_TIME - time) * robot_counts[0]) + TRIANGULAR_NUMBERS[TOTAL_TIME - time]
-	if geode_upper_bound <= most_geodes_at_time[time]:
+	if geode_upper_bound <= MOST_GEODES_AT_TIME[blueprint_index][time]:
 		return 0
 
 	# start building the relevant robot that was planned for this time step
@@ -122,8 +123,8 @@ def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, build_t
 		result = max(all_child_geodes)
 
 	# update the most geodes we've ever found at this time step
-	if result > most_geodes_at_time[time]:
-		most_geodes_at_time[time] = result
+	if result > MOST_GEODES_AT_TIME[blueprint_index][time]:
+		MOST_GEODES_AT_TIME[blueprint_index][time] = result
 
 	return result
 
@@ -153,42 +154,58 @@ def build_blueprint_dictionaries(lines):
 # put blueprints in global namespace so we can cache methods
 lines = load_data("day-19-test-input.txt")
 BLUEPRINTS = build_blueprint_dictionaries(lines)
+MOST_GEODES_AT_TIME = {
+	i: {j: 0 for j in range(TOTAL_TIME + 1)}
+	for i in range(len(BLUEPRINTS))
+}
 	
 
+def process_blueprint(i):
+    start_time = time.time()
+    print(f"Blueprint {i + 1} of {len(BLUEPRINTS)}.")
+
+    # reset resources and robots
+    resource_counts = (0, 0, 0, 0)
+    robot_counts = (0, 0, 0, 1)
+
+    # get max geodes that the blueprint could produce from simulation start
+    max_geodes = get_max_geodes(i, START_TIME, resource_counts, robot_counts, None)
+    result = (i + 1) * max_geodes
+
+    # view cache efficacy (separate processes can't see each others' caches, so no need to clear)
+    print(f"Max geodes  cache: {get_max_geodes.cache_info()}") 
+    print(f"Robot build cache: {time_to_build_robot.cache_info()}") 
+
+    # measure elapsed time
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"Elapsed time for blueprint {i + 1}: {elapsed_time} seconds.")
+    print()
+
+    return result
+
+
 if __name__ == "__main__":
-	start_time = time.time()
-	print(f"Start time: {start_time}")
-	print()
+    overall_start_time = time.time()
+    print(f"Start time: {overall_start_time}")
+    print()
 
-	answer_1 = 0
-	for i in range(len(BLUEPRINTS)):
-		print(f"Blueprint {i + 1} of {len(BLUEPRINTS)}.")
+    # determine the number of available cores
+    num_cores = multiprocessing.cpu_count()
 
-		most_geodes_at_time = {i: 0 for i in range(25)}
+    # create a pool of workers
+    with multiprocessing.Pool(processes=num_cores) as pool:
+        # Map the process_blueprint function to each blueprint index
+        results = pool.map(process_blueprint, range(len(BLUEPRINTS)))
 
-		# reset resources and robots
-		resource_counts = (0, 0, 0, 0)
-		robot_counts = (0, 0, 0, 1)
+    # sum up all the results
+    answer_1 = sum(results)
 
-		# TODO Not likely, but is it possible that we could build a robot on the very first time step? (i.e., are given enough resources to start)
-		# get max geodes that the blueprint could produce from simulation start
-		max_geodes = get_max_geodes(i, START_TIME, resource_counts, robot_counts, None)
-		answer_1 += (i + 1) * max_geodes
+    # print final answer
+    print(f"Answer 1: {answer_1}")
+    print()
 
-		# reset caches
-		print(f"Max geodes  cache: {get_max_geodes.cache_info()}") 
-		print(f"Robot build cache: {time_to_build_robot.cache_info()}") 
-		get_max_geodes.cache_clear() 
-		time_to_build_robot.cache_clear() 
-
-		# make sure each blueprint isn't taking a ridiculous amount of time
-		end_time = time.time()
-		elapsed_time = end_time - start_time
-		start_time = end_time
-		print(f"Elapsed time for blueprint {i + 1}: {elapsed_time} seconds.")
-		print()
-
-	print(f"Answer 1: {answer_1}")
-	print()
-
+    overall_end_time = time.time()
+    overall_elapsed_time = overall_end_time - overall_start_time
+    print(f"Total elapsed time: {overall_elapsed_time} seconds.")
 
