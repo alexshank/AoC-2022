@@ -152,7 +152,7 @@ def build_blueprint_dictionaries(lines):
 
 
 # put blueprints in global namespace so we can cache methods
-lines = load_data("day-19-test-input.txt")
+lines = load_data("day-19-input.txt")
 BLUEPRINTS = build_blueprint_dictionaries(lines)
 MOST_GEODES_AT_TIME = {
 	i: {j: 0 for j in range(TOTAL_TIME + 1)}
@@ -201,7 +201,7 @@ if __name__ == "__main__":
     # sum up all the results
     answer_1 = sum(results)
 
-    # print final answer
+	# part 1 (answer: 1127)
     print(f"Answer 1: {answer_1}")
     print()
 
