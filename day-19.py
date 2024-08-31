@@ -1,7 +1,8 @@
 from helpers import load_data
 from math import ceil
 import time
-from functools import lru_cache
+from functools import lru_cache, reduce
+from operator import mul
 import multiprocessing
 
 
@@ -11,6 +12,7 @@ RESOURCE_TYPES = ['geode', 'obsidian', 'clay', 'ore']
 RESOURCE_MASKS = {'geode': (1, 0, 0, 0), 'obsidian': (0, 1, 0, 0), 'clay': (0, 0, 1, 0), 'ore': (0, 0, 0, 1)}
 START_TIME = 1
 TOTAL_TIME = 24
+# TOTAL_TIME = 32
 
 # tracks most geodes found at each time step
 # gets compared to the max number of possible remaining geodes to reduce search space
@@ -18,8 +20,8 @@ TOTAL_TIME = 24
 MOST_GEODES_AT_TIME = {i: 0 for i in range(TOTAL_TIME + 1)}
 
 # the triangular numbers for getting geode upper bounds
-NATURAL_NUMBERS = [i + 1 for i in range(25)]
-TRIANGULAR_NUMBERS = [sum(NATURAL_NUMBERS[:i]) for i in range(1, 25)]
+NATURAL_NUMBERS = [i + 1 for i in range(TOTAL_TIME + 1)]
+TRIANGULAR_NUMBERS = [sum(NATURAL_NUMBERS[:i]) for i in range(1, TOTAL_TIME + 1)]
 
 
 """
@@ -41,13 +43,17 @@ def lessThanOrEqualT(t1: tuple, t2: tuple):
 	return t1[0] <= t2[0] and t1[1] <= t2[1] and t1[2] <= t2[2] and t1[3] <= t2[3]
 
 
+def clampT(t1: tuple, t2: tuple):
+	return (min(t1[0], t2[0]), min(t1[1], t2[1]), min(t1[2], t2[2]), min(t1[3], t2[3]))
+
+
 # determine the next time that a robot could be built based on current robots and resources
 @lru_cache(maxsize=None)
-def time_to_build_robot(blueprint_index, robot_resource_type, previous_time, updated_resource_counts, updated_robot_counts):
+def time_to_build_robot(blueprint_index, robot_resource_type, updated_resource_counts, updated_robot_counts):
 	# if already have the resources to build robot, return early
 	robot_blueprint = BLUEPRINTS[blueprint_index][robot_resource_type]
 	if lessThanOrEqualT(robot_blueprint, updated_resource_counts):
-		return previous_time + 1
+		return 1
 	
 	# check if we have existing robots that can eventually mine us the resources for the new robot
 	required_resource_types = {i for i in range(4) if robot_blueprint[i] > 0 and robot_blueprint[i] > updated_resource_counts[i]}
@@ -64,21 +70,21 @@ def time_to_build_robot(blueprint_index, robot_resource_type, previous_time, upd
 		in required_resource_types
 	]
 
-	return previous_time + max(time_deltas) + 1
+	return max(time_deltas) + 1
 
 
 # recursively run simulation and return the maximum number of geodes that could be mined
 # yields max number of geodes you could get by entering this time step with a build_type already chosen
 @lru_cache(maxsize=None)
-def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, build_type=None):
+def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, max_robot_counts, max_resource_counts, build_type=None):
 	# compute absolute upper bound of geodes we could get from this current state
 	# this assumes you could build one new geode robot at every remaining time step
 	# trim this branch off the search, if it clearly will not beat the current best
 	current_geodes = resource_counts[0]
 	geode_upper_bound = current_geodes + ((TOTAL_TIME - time) * robot_counts[0]) + TRIANGULAR_NUMBERS[TOTAL_TIME - time]
-	if geode_upper_bound <= MOST_GEODES_AT_TIME[blueprint_index][time]:
-		return 0
-
+	if geode_upper_bound < MOST_GEODES_AT_TIME[blueprint_index][time]:
+		return -10_000
+ 
 	# start building the relevant robot that was planned for this time step
 	# 1. Remove resources to start buiding robot
 	# 2. Collect new resources with existing robots
@@ -86,34 +92,45 @@ def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, build_t
 	if build_type != None:
 		updated_resource_counts = subT(resource_counts, BLUEPRINTS[blueprint_index][build_type])
 		updated_resource_counts = addT(updated_resource_counts, robot_counts)
+
+		# TODO cap resources at a max so that we get more cache hits
+		updated_resource_counts = clampT(updated_resource_counts, max_resource_counts)
+
 		updated_robot_counts = addT(robot_counts, RESOURCE_MASKS[build_type])
+		updated_robot_counts = clampT(updated_robot_counts, max_robot_counts)
 	else:
 		updated_resource_counts = addT(resource_counts, robot_counts)
+
+		# TODO cap resources at a max so that we get more cache hits
+		updated_resource_counts = clampT(updated_resource_counts, max_resource_counts)
+
 		updated_robot_counts = robot_counts
+		updated_robot_counts = clampT(robot_counts, max_robot_counts)
 
 	# possible robots that could be built and when
 	robot_build_times = [
 		(
 			robot_resource_type,
-			time_to_build_robot(blueprint_index, robot_resource_type, time, updated_resource_counts, updated_robot_counts)
+			time_to_build_robot(blueprint_index, robot_resource_type, updated_resource_counts, updated_robot_counts)
 		)
 		for robot_resource_type
 		in RESOURCE_MASKS.keys()
+		if updated_robot_counts[RESOURCE_INDICES[robot_resource_type]] < max_robot_counts[RESOURCE_INDICES[robot_resource_type]]
 	]
 
 	all_child_geodes = []
 	for robot_resource_type, child_time in robot_build_times:
 		# if impossible to build the robot type at all or before time's up, continue
 		# if robot built at time 24, it doesn't contribute any mining
-		if child_time == None or child_time > TOTAL_TIME - 1:
+		if child_time == None or time + child_time > TOTAL_TIME - 1:
 			continue
 
 		# add resources, new robot isn't available to mine resources until ((next time step) + 1)
-		newly_mined_resource_counts = scaleT(updated_robot_counts, child_time - time - 1)
+		newly_mined_resource_counts = scaleT(updated_robot_counts, child_time - 1)
 		child_resource_counts = addT(updated_resource_counts, newly_mined_resource_counts)
 
 		# make recursive call
-		child_geodes = get_max_geodes(blueprint_index, child_time, child_resource_counts, updated_robot_counts, robot_resource_type)
+		child_geodes = get_max_geodes(blueprint_index, time + child_time, child_resource_counts, updated_robot_counts, max_robot_counts, max_resource_counts, robot_resource_type)
 		all_child_geodes.append(child_geodes)
 
 	# get best robot choice and resulting geodes
@@ -154,6 +171,7 @@ def build_blueprint_dictionaries(lines):
 # put blueprints in global namespace so we can cache methods
 lines = load_data("day-19-input.txt")
 BLUEPRINTS = build_blueprint_dictionaries(lines)
+# BLUEPRINTS = BLUEPRINTS[:3] # part 2
 MOST_GEODES_AT_TIME = {
 	i: {j: 0 for j in range(TOTAL_TIME + 1)}
 	for i in range(len(BLUEPRINTS))
@@ -161,51 +179,70 @@ MOST_GEODES_AT_TIME = {
 	
 
 def process_blueprint(i):
-    start_time = time.time()
-    print(f"Blueprint {i + 1} of {len(BLUEPRINTS)}.")
+	start_time = time.time()
+	print(f"Blueprint {i + 1} of {len(BLUEPRINTS)}.")
+	
+	# TODO need to determine these maximums / sums more accurately
+	# find the maximum number of each robot we would ever want
+	# if we can only spend X ore per turn, we would never want X + 1 ore robots
+	# this is the main thing that reduces our search space
+	blueprint = BLUEPRINTS[i]
+	max_geode = 10_000
+	max_obsidian = 30 + max([blueprint[resource_type][1] for resource_type in RESOURCE_TYPES])
+	max_clay = 30 + max([blueprint[resource_type][2] for resource_type in RESOURCE_TYPES])
+	max_ore = 30 + max([blueprint[resource_type][3] for resource_type in RESOURCE_TYPES])
+	max_robot_counts = (max_geode, max_obsidian, max_clay, max_ore)
+	
+	sum_geode = 10_000
+	sum_obsidian = 30 + sum([blueprint[resource_type][1] for resource_type in RESOURCE_TYPES])
+	sum_clay = 30 + sum([blueprint[resource_type][2] for resource_type in RESOURCE_TYPES])
+	sum_ore = 30 + sum([blueprint[resource_type][3] for resource_type in RESOURCE_TYPES])
+	max_resource_counts = (sum_geode, sum_obsidian, sum_clay, sum_ore)
+	
+	# reset resources and robots
+	resource_counts = (0, 0, 0, 0)
+	robot_counts = (0, 0, 0, 1)
 
-    # reset resources and robots
-    resource_counts = (0, 0, 0, 0)
-    robot_counts = (0, 0, 0, 1)
+	# get max geodes that the blueprint could produce from simulation start
+	max_geodes = get_max_geodes(i, START_TIME, resource_counts, robot_counts, max_robot_counts, max_resource_counts, None)
+	result = (i + 1) * max_geodes # part 1
+	# result = max_geodes # part 2
 
-    # get max geodes that the blueprint could produce from simulation start
-    max_geodes = get_max_geodes(i, START_TIME, resource_counts, robot_counts, None)
-    result = (i + 1) * max_geodes
+	# view cache efficacy (separate processes can't see each others' caches, so no need to clear)
+	print(f"Max geodes  cache: {get_max_geodes.cache_info()}") 
+	print(f"Robot build cache: {time_to_build_robot.cache_info()}") 
 
-    # view cache efficacy (separate processes can't see each others' caches, so no need to clear)
-    print(f"Max geodes  cache: {get_max_geodes.cache_info()}") 
-    print(f"Robot build cache: {time_to_build_robot.cache_info()}") 
-
-    # measure elapsed time
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print(f"Elapsed time for blueprint {i + 1}: {elapsed_time} seconds.")
-    print()
-
-    return result
+	# measure elapsed time
+	end_time = time.time()
+	elapsed_time = end_time - start_time
+	print(f"Elapsed time for blueprint {i + 1}: {elapsed_time} seconds.")
+	print(f"Result for blueprint {i + 1}: {result}")
+	print()
+	return result
 
 
 if __name__ == "__main__":
-    overall_start_time = time.time()
-    print(f"Start time: {overall_start_time}")
-    print()
+	overall_start_time = time.time()
+	print(f"Start time: {overall_start_time}")
+	print()
 
-    # determine the number of available cores
-    num_cores = multiprocessing.cpu_count()
+	# determine the number of available cores
+	num_cores = multiprocessing.cpu_count()
 
-    # create a pool of workers
-    with multiprocessing.Pool(processes=num_cores) as pool:
-        # Map the process_blueprint function to each blueprint index
-        results = pool.map(process_blueprint, range(len(BLUEPRINTS)))
+	# delegate to a pool of workers
+	with multiprocessing.Pool(processes=num_cores) as pool:
+		results = pool.map(process_blueprint, range(len(BLUEPRINTS)))
 
-    # sum up all the results
-    answer_1 = sum(results)
+	# sum up all the results
+	# answer = reduce(mul, results)
+	answer = sum(results)
 
 	# part 1 (answer: 1127)
-    print(f"Answer 1: {answer_1}")
-    print()
+	# part 2 (answer: TODO)
+	print(f"Answer: {answer}")
+	print()
 
-    overall_end_time = time.time()
-    overall_elapsed_time = overall_end_time - overall_start_time
-    print(f"Total elapsed time: {overall_elapsed_time} seconds.")
+	overall_end_time = time.time()
+	overall_elapsed_time = overall_end_time - overall_start_time
+	print(f"Total elapsed time: {overall_elapsed_time} seconds.")
 
