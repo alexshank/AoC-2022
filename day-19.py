@@ -11,8 +11,8 @@ RESOURCE_INDICES = {'geode': 0, 'obsidian': 1, 'clay': 2, 'ore': 3}
 RESOURCE_TYPES = ['geode', 'obsidian', 'clay', 'ore']
 RESOURCE_MASKS = {'geode': (1, 0, 0, 0), 'obsidian': (0, 1, 0, 0), 'clay': (0, 0, 1, 0), 'ore': (0, 0, 0, 1)}
 START_TIME = 1
-TOTAL_TIME = 24
-# TOTAL_TIME = 32
+# TOTAL_TIME = 24
+TOTAL_TIME = 32 # part 2
 
 # tracks most geodes found at each time step
 # gets compared to the max number of possible remaining geodes to reduce search space
@@ -93,16 +93,30 @@ def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, max_rob
 		updated_resource_counts = subT(resource_counts, BLUEPRINTS[blueprint_index][build_type])
 		updated_resource_counts = addT(updated_resource_counts, robot_counts)
 
+		# TODO don't actually have to do math on the geode 10_000 limit
+		# TODO likely don't need the +1?
 		# TODO cap resources at a max so that we get more cache hits
-		updated_resource_counts = clampT(updated_resource_counts, max_resource_counts)
+		# print('dog')
+		# print(f"{blueprint_index} {max_robot_counts}")
+		temp_max_resource_counts = tuple(i * (TOTAL_TIME - time + 1) for i in max_robot_counts)
+		# print(f"{blueprint_index} {temp_max_resource_counts}")
+		# print()
+		updated_resource_counts = clampT(updated_resource_counts, temp_max_resource_counts)
 
 		updated_robot_counts = addT(robot_counts, RESOURCE_MASKS[build_type])
 		updated_robot_counts = clampT(updated_robot_counts, max_robot_counts)
 	else:
 		updated_resource_counts = addT(resource_counts, robot_counts)
 
+		# TODO don't actually have to do math on the geode 10_000 limit
+		# TODO likely don't need the +1?
 		# TODO cap resources at a max so that we get more cache hits
-		updated_resource_counts = clampT(updated_resource_counts, max_resource_counts)
+		# print('cat')
+		# print(f"{blueprint_index} {max_robot_counts}")
+		temp_max_resource_counts = tuple(i * (TOTAL_TIME - time + 1) for i in max_robot_counts)
+		# print(f"{blueprint_index} {temp_max_resource_counts}")
+		# print()
+		updated_resource_counts = clampT(updated_resource_counts, temp_max_resource_counts)
 
 		updated_robot_counts = robot_counts
 		updated_robot_counts = clampT(robot_counts, max_robot_counts)
@@ -143,6 +157,11 @@ def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, max_rob
 	if result > MOST_GEODES_AT_TIME[blueprint_index][time]:
 		MOST_GEODES_AT_TIME[blueprint_index][time] = result
 
+	# TODO remove
+	if time == TOTAL_TIME - 1 and result == 51:
+		print(updated_robot_counts)
+		print(updated_resource_counts)
+
 	return result
 
 
@@ -169,9 +188,9 @@ def build_blueprint_dictionaries(lines):
 
 
 # put blueprints in global namespace so we can cache methods
-lines = load_data("day-19-input.txt")
+lines = load_data("day-19-test-input.txt")
 BLUEPRINTS = build_blueprint_dictionaries(lines)
-# BLUEPRINTS = BLUEPRINTS[:3] # part 2
+BLUEPRINTS = BLUEPRINTS[:3] # part 2
 MOST_GEODES_AT_TIME = {
 	i: {j: 0 for j in range(TOTAL_TIME + 1)}
 	for i in range(len(BLUEPRINTS))
@@ -188,15 +207,16 @@ def process_blueprint(i):
 	# this is the main thing that reduces our search space
 	blueprint = BLUEPRINTS[i]
 	max_geode = 10_000
-	max_obsidian = 30 + max([blueprint[resource_type][1] for resource_type in RESOURCE_TYPES])
-	max_clay = 30 + max([blueprint[resource_type][2] for resource_type in RESOURCE_TYPES])
-	max_ore = 30 + max([blueprint[resource_type][3] for resource_type in RESOURCE_TYPES])
+	max_obsidian = max([blueprint[resource_type][1] for resource_type in RESOURCE_TYPES])
+	max_clay = max([blueprint[resource_type][2] for resource_type in RESOURCE_TYPES])
+	max_ore = max([blueprint[resource_type][3] for resource_type in RESOURCE_TYPES])
 	max_robot_counts = (max_geode, max_obsidian, max_clay, max_ore)
 	
+	# TODO possibly remove
 	sum_geode = 10_000
-	sum_obsidian = 30 + sum([blueprint[resource_type][1] for resource_type in RESOURCE_TYPES])
-	sum_clay = 30 + sum([blueprint[resource_type][2] for resource_type in RESOURCE_TYPES])
-	sum_ore = 30 + sum([blueprint[resource_type][3] for resource_type in RESOURCE_TYPES])
+	sum_obsidian = sum([blueprint[resource_type][1] for resource_type in RESOURCE_TYPES])
+	sum_clay = sum([blueprint[resource_type][2] for resource_type in RESOURCE_TYPES])
+	sum_ore = sum([blueprint[resource_type][3] for resource_type in RESOURCE_TYPES])
 	max_resource_counts = (sum_geode, sum_obsidian, sum_clay, sum_ore)
 	
 	# reset resources and robots
@@ -205,8 +225,8 @@ def process_blueprint(i):
 
 	# get max geodes that the blueprint could produce from simulation start
 	max_geodes = get_max_geodes(i, START_TIME, resource_counts, robot_counts, max_robot_counts, max_resource_counts, None)
-	result = (i + 1) * max_geodes # part 1
-	# result = max_geodes # part 2
+	# result = (i + 1) * max_geodes # part 1
+	result = max_geodes # part 2
 
 	# view cache efficacy (separate processes can't see each others' caches, so no need to clear)
 	print(f"Max geodes  cache: {get_max_geodes.cache_info()}") 
@@ -234,10 +254,12 @@ if __name__ == "__main__":
 		results = pool.map(process_blueprint, range(len(BLUEPRINTS)))
 
 	# sum up all the results
-	# answer = reduce(mul, results)
-	answer = sum(results)
+	# answer = sum(results)
+	answer = reduce(mul, results) # part 2
 
 	# part 1 (answer: 1127)
+
+	# TODO answer 19656 too low for part 2
 	# part 2 (answer: TODO)
 	print(f"Answer: {answer}")
 	print()
