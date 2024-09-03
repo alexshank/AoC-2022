@@ -120,6 +120,22 @@ def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, max_rob
 
 		updated_robot_counts = robot_counts
 		updated_robot_counts = clampT(robot_counts, max_robot_counts)
+	
+	# TODO testing that we are getting to the correct states
+	# if time == 8 and updated_robot_counts[0] == 0 and updated_resource_counts == (0, 0, 1, 3):
+	# if time == 13 and updated_robot_counts[0] == 0 and updated_resource_counts == (0, 0, 21, 3):
+
+	# TODO we do reach this state successfully
+	# if time == 14 and updated_robot_counts[1] == 1 and updated_resource_counts == (0, 0, 14, 2):
+
+	# TODO we aren't reaching this, it would be a next state where we choose not to build anything
+	if time == 15 and updated_robot_counts[0] == 0 and updated_resource_counts == (0, 1, 21, 4):
+	# if time == 25 and updated_robot_counts[0] == 4 and updated_resource_counts == (11, 10, 35, 4):
+		print('~~~~~~~' * 10)
+		print(f"Matched state at time: {time}")
+		print(updated_robot_counts)
+		print(updated_resource_counts)
+		print('~~~~~~~' * 10)
 
 	# possible robots that could be built and when
 	robot_build_times = [
@@ -147,20 +163,31 @@ def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, max_rob
 		child_geodes = get_max_geodes(blueprint_index, time + child_time, child_resource_counts, updated_robot_counts, max_robot_counts, max_resource_counts, robot_resource_type)
 		all_child_geodes.append(child_geodes)
 
+	# TODO this is where the issue is! We don't account for hte option of not building anything
 	# get best robot choice and resulting geodes
-	if len(all_child_geodes) == 0:
-		result = updated_resource_counts[0] + updated_robot_counts[0] * (TOTAL_TIME - time)
+	if len(all_child_geodes) == 0 and (TOTAL_TIME - time  - 1) > 0:
+		result = get_max_geodes(blueprint_index, time + 1, updated_resource_counts, updated_robot_counts, max_robot_counts, max_resource_counts, None)
+	elif len(all_child_geodes) == 0:
+		result = updated_resource_counts[0] + updated_robot_counts[0]
 	else:
+
 		result = max(all_child_geodes)
+
+		# TODO add the case where we just choose not to build anything anyways
+		if (TOTAL_TIME - time  - 1) > 0:
+			temp = get_max_geodes(blueprint_index, time + 1, updated_resource_counts, updated_robot_counts, max_robot_counts, max_resource_counts, None)
+			result = max(result, temp)
+
+
 
 	# update the most geodes we've ever found at this time step
 	if result > MOST_GEODES_AT_TIME[blueprint_index][time]:
 		MOST_GEODES_AT_TIME[blueprint_index][time] = result
 
 	# TODO remove
-	if time == TOTAL_TIME - 1 and result == 51:
-		print(updated_robot_counts)
-		print(updated_resource_counts)
+	# if time == TOTAL_TIME - 1 and result == 51:
+	# 	print(updated_robot_counts)
+	# 	print(updated_resource_counts)
 
 	return result
 
@@ -190,7 +217,8 @@ def build_blueprint_dictionaries(lines):
 # put blueprints in global namespace so we can cache methods
 lines = load_data("day-19-test-input.txt")
 BLUEPRINTS = build_blueprint_dictionaries(lines)
-BLUEPRINTS = BLUEPRINTS[:3] # part 2
+# BLUEPRINTS = BLUEPRINTS[:3] # part 2
+BLUEPRINTS = [BLUEPRINTS[0]] # TODO testing
 MOST_GEODES_AT_TIME = {
 	i: {j: 0 for j in range(TOTAL_TIME + 1)}
 	for i in range(len(BLUEPRINTS))
@@ -212,7 +240,7 @@ def process_blueprint(i):
 	max_ore = max([blueprint[resource_type][3] for resource_type in RESOURCE_TYPES])
 	max_robot_counts = (max_geode, max_obsidian, max_clay, max_ore)
 	
-	# TODO possibly remove
+	# TODO possibly remove, not currently used
 	sum_geode = 10_000
 	sum_obsidian = sum([blueprint[resource_type][1] for resource_type in RESOURCE_TYPES])
 	sum_clay = sum([blueprint[resource_type][2] for resource_type in RESOURCE_TYPES])
