@@ -164,39 +164,55 @@ def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, max_rob
 		child_geodes = get_max_geodes(blueprint_index, time + child_time, child_resource_counts, updated_robot_counts, max_robot_counts, max_resource_counts, robot_resource_type)
 		all_child_geodes.append(child_geodes)
 
-	# TODO this is where the issue is! We don't account for hte option of not building anything
-	# get best robot choice and resulting geodes
-	# if len(all_child_geodes) == 0 and (TOTAL_TIME - time  - 1) > 0:
-	# 	result = get_max_geodes(blueprint_index, time + 1, updated_resource_counts, updated_robot_counts, max_robot_counts, max_resource_counts, None)
-	# the last turn
+	# can never build any future robot by just waiting and collecting resources
 	if len(all_child_geodes) == 0:
-
-		# TODO check case where we just step ahead in time
-
 		result = updated_resource_counts[0] + updated_robot_counts[0] * (TOTAL_TIME - time)
+	# could build a future robot before time is up
 	elif len(all_child_geodes) > 0:
 
-		# TODO check case where we just step ahead in time
+		# TODO START OF TEST ###########################################################################
+		# # TODO check case where we just step ahead in time and choose to build nothing
+		# # TODO this is blowing up the search space to giant size
+		# # TODO NEXT ATTEMPT IS TO BUMP RESOURCES HERE, THEN USE TIME_TO_BUILD_ROBOT again and create more child results
+
+		# # TODO refactor so that we don't just have copy and paste of the below
+		# # TODO checking next robot build times if we choose to not build next turn
+		# # possible robots that could be built and when
+		# second_updated_resource_counts = addT(updated_resource_counts, updated_robot_counts)
+		# robot_build_times = [
+		# 	(
+		# 		robot_resource_type,
+		# 		time_to_build_robot(blueprint_index, robot_resource_type, second_updated_resource_counts, updated_robot_counts)
+		# 	)
+		# 	for robot_resource_type
+		# 	in RESOURCE_MASKS.keys()
+		# 	if updated_robot_counts[RESOURCE_INDICES[robot_resource_type]] < max_robot_counts[RESOURCE_INDICES[robot_resource_type]]
+		# ]
+
+		# # TODO we're appending to an already non-empty list
+		# # all_child_geodes = []
+		# for robot_resource_type, child_time in robot_build_times:
+		# 	# if impossible to build the robot type at all or before time's up, continue
+		# 	# if robot built at time 24, it doesn't contribute any mining
+		# 	if child_time == None or time + 1 + child_time > TOTAL_TIME - 1:
+		# 		continue
+
+		# 	# add resources, new robot isn't available to mine resources until ((next time step) + 1)
+		# 	newly_mined_resource_counts = scaleT(updated_robot_counts, child_time - 1)
+		# 	child_resource_counts = addT(second_updated_resource_counts, newly_mined_resource_counts)
+
+		# 	# make recursive call
+		# 	child_geodes = get_max_geodes(blueprint_index, time + 1 + child_time, child_resource_counts, updated_robot_counts, max_robot_counts, max_resource_counts, robot_resource_type)
+		# 	all_child_geodes.append(child_geodes)
+		# TODO END OF TEST ###########################################################################
 
 		result = max(all_child_geodes)
 	else:
 		raise Exception("Uncaught case for result!")
 
-		# # TODO add the case where we just choose not to build anything anyways
-		# if (TOTAL_TIME - time  - 1) > 0:
-		# 	temp = get_max_geodes(blueprint_index, time + 1, updated_resource_counts, updated_robot_counts, max_robot_counts, max_resource_counts, None)
-		# 	result = max(result, temp)
-
-
-
 	# update the most geodes we've ever found at this time step
 	if result > MOST_GEODES_AT_TIME[blueprint_index][time]:
 		MOST_GEODES_AT_TIME[blueprint_index][time] = result
-
-	# TODO remove
-	# if time == TOTAL_TIME - 1 and result == 51:
-	# 	print(updated_robot_counts)
-	# 	print(updated_resource_counts)
 
 	return result
 
