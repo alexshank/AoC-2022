@@ -83,7 +83,8 @@ def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, max_rob
 	current_geodes = resource_counts[0]
 	geode_upper_bound = current_geodes + ((TOTAL_TIME - time) * robot_counts[0]) + TRIANGULAR_NUMBERS[TOTAL_TIME - time]
 	if geode_upper_bound < MOST_GEODES_AT_TIME[blueprint_index][time]:
-		return -10_000
+		# TODO arbitrary value that makes this branch really undesirable
+		return -100_000
  
 	# start building the relevant robot that was planned for this time step
 	# 1. Remove resources to start buiding robot
@@ -93,7 +94,7 @@ def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, max_rob
 		updated_resource_counts = subT(resource_counts, BLUEPRINTS[blueprint_index][build_type])
 		updated_resource_counts = addT(updated_resource_counts, robot_counts)
 
-		# TODO don't actually have to do math on the geode 10_000 limit
+		# TODO don't actually have to do clamp math on the geode 10_000 limit
 		# TODO likely don't need the +1?
 		# TODO cap resources at a max so that we get more cache hits
 		# print('dog')
@@ -108,7 +109,7 @@ def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, max_rob
 	else:
 		updated_resource_counts = addT(resource_counts, robot_counts)
 
-		# TODO don't actually have to do math on the geode 10_000 limit
+		# TODO don't actually have to do clamp math on the geode 10_000 limit
 		# TODO likely don't need the +1?
 		# TODO cap resources at a max so that we get more cache hits
 		# print('cat')
@@ -122,14 +123,14 @@ def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, max_rob
 		updated_robot_counts = clampT(robot_counts, max_robot_counts)
 	
 	# TODO testing that we are getting to the correct states
-	# if time == 8 and updated_robot_counts[0] == 0 and updated_resource_counts == (0, 0, 1, 3):
+	if time == 8 and updated_robot_counts[0] == 0 and updated_resource_counts == (0, 0, 1, 3):
 	# if time == 13 and updated_robot_counts[0] == 0 and updated_resource_counts == (0, 0, 21, 3):
 
 	# TODO we do reach this state successfully
 	# if time == 14 and updated_robot_counts[1] == 1 and updated_resource_counts == (0, 0, 14, 2):
 
 	# TODO we aren't reaching this, it would be a next state where we choose not to build anything
-	if time == 15 and updated_robot_counts[0] == 0 and updated_resource_counts == (0, 1, 21, 4):
+	# if time == 15 and updated_robot_counts[0] == 0 and updated_resource_counts == (0, 1, 21, 4):
 	# if time == 25 and updated_robot_counts[0] == 4 and updated_resource_counts == (11, 10, 35, 4):
 		print('~~~~~~~' * 10)
 		print(f"Matched state at time: {time}")
@@ -165,18 +166,26 @@ def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, max_rob
 
 	# TODO this is where the issue is! We don't account for hte option of not building anything
 	# get best robot choice and resulting geodes
-	if len(all_child_geodes) == 0 and (TOTAL_TIME - time  - 1) > 0:
-		result = get_max_geodes(blueprint_index, time + 1, updated_resource_counts, updated_robot_counts, max_robot_counts, max_resource_counts, None)
-	elif len(all_child_geodes) == 0:
-		result = updated_resource_counts[0] + updated_robot_counts[0]
-	else:
+	# if len(all_child_geodes) == 0 and (TOTAL_TIME - time  - 1) > 0:
+	# 	result = get_max_geodes(blueprint_index, time + 1, updated_resource_counts, updated_robot_counts, max_robot_counts, max_resource_counts, None)
+	# the last turn
+	if len(all_child_geodes) == 0:
+
+		# TODO check case where we just step ahead in time
+
+		result = updated_resource_counts[0] + updated_robot_counts[0] * (TOTAL_TIME - time)
+	elif len(all_child_geodes) > 0:
+
+		# TODO check case where we just step ahead in time
 
 		result = max(all_child_geodes)
+	else:
+		raise Exception("Uncaught case for result!")
 
-		# TODO add the case where we just choose not to build anything anyways
-		if (TOTAL_TIME - time  - 1) > 0:
-			temp = get_max_geodes(blueprint_index, time + 1, updated_resource_counts, updated_robot_counts, max_robot_counts, max_resource_counts, None)
-			result = max(result, temp)
+		# # TODO add the case where we just choose not to build anything anyways
+		# if (TOTAL_TIME - time  - 1) > 0:
+		# 	temp = get_max_geodes(blueprint_index, time + 1, updated_resource_counts, updated_robot_counts, max_robot_counts, max_resource_counts, None)
+		# 	result = max(result, temp)
 
 
 
