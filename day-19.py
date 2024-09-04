@@ -27,10 +27,12 @@ TRIANGULAR_NUMBERS = [sum(NATURAL_NUMBERS[:i]) for i in range(1, TOTAL_TIME + 1)
 """
 tuple utility functions
 """
+# TODO tuples already work like this out of the box?
 def addT(t1: tuple, t2: tuple):
 	return (t1[0] + t2[0], t1[1] + t2[1], t1[2] + t2[2], t1[3] + t2[3])
 
 
+# TODO tuples already work like this out of the box?
 def subT(t1: tuple, t2: tuple):
 	return (t1[0] - t2[0], t1[1] - t2[1], t1[2] - t2[2], t1[3] - t2[3])
 
@@ -171,39 +173,39 @@ def get_max_geodes(blueprint_index, time, resource_counts, robot_counts, max_rob
 	elif len(all_child_geodes) > 0:
 
 		# TODO START OF TEST ###########################################################################
-		# # TODO check case where we just step ahead in time and choose to build nothing
-		# # TODO this is blowing up the search space to giant size
-		# # TODO NEXT ATTEMPT IS TO BUMP RESOURCES HERE, THEN USE TIME_TO_BUILD_ROBOT again and create more child results
+		# TODO check case where we just step ahead in time and choose to build nothing
+		# TODO this is blowing up the search space to giant size
+		# TODO NEXT ATTEMPT IS TO BUMP RESOURCES HERE, THEN USE TIME_TO_BUILD_ROBOT again and create more child results
 
-		# # TODO refactor so that we don't just have copy and paste of the below
-		# # TODO checking next robot build times if we choose to not build next turn
-		# # possible robots that could be built and when
-		# second_updated_resource_counts = addT(updated_resource_counts, updated_robot_counts)
-		# robot_build_times = [
-		# 	(
-		# 		robot_resource_type,
-		# 		time_to_build_robot(blueprint_index, robot_resource_type, second_updated_resource_counts, updated_robot_counts)
-		# 	)
-		# 	for robot_resource_type
-		# 	in RESOURCE_MASKS.keys()
-		# 	if updated_robot_counts[RESOURCE_INDICES[robot_resource_type]] < max_robot_counts[RESOURCE_INDICES[robot_resource_type]]
-		# ]
+		# TODO refactor so that we don't just have copy and paste of the below
+		# TODO checking next robot build times if we choose to not build next turn
+		# possible robots that could be built and when
+		second_updated_resource_counts = addT(updated_resource_counts, updated_robot_counts)
+		robot_build_times = [
+			(
+				robot_resource_type,
+				time_to_build_robot(blueprint_index, robot_resource_type, second_updated_resource_counts, updated_robot_counts)
+			)
+			for robot_resource_type
+			in RESOURCE_MASKS.keys()
+			if updated_robot_counts[RESOURCE_INDICES[robot_resource_type]] < max_robot_counts[RESOURCE_INDICES[robot_resource_type]]
+		]
 
-		# # TODO we're appending to an already non-empty list
-		# # all_child_geodes = []
-		# for robot_resource_type, child_time in robot_build_times:
-		# 	# if impossible to build the robot type at all or before time's up, continue
-		# 	# if robot built at time 24, it doesn't contribute any mining
-		# 	if child_time == None or time + 1 + child_time > TOTAL_TIME - 1:
-		# 		continue
+		# TODO we're appending to an already non-empty list
+		# all_child_geodes = []
+		for robot_resource_type, child_time in robot_build_times:
+			# if impossible to build the robot type at all or before time's up, continue
+			# if robot built at time 24, it doesn't contribute any mining
+			if child_time == None or time + 1 + child_time > TOTAL_TIME - 1:
+				continue
 
-		# 	# add resources, new robot isn't available to mine resources until ((next time step) + 1)
-		# 	newly_mined_resource_counts = scaleT(updated_robot_counts, child_time - 1)
-		# 	child_resource_counts = addT(second_updated_resource_counts, newly_mined_resource_counts)
+			# add resources, new robot isn't available to mine resources until ((next time step) + 1)
+			newly_mined_resource_counts = scaleT(updated_robot_counts, child_time - 1)
+			child_resource_counts = addT(second_updated_resource_counts, newly_mined_resource_counts)
 
-		# 	# make recursive call
-		# 	child_geodes = get_max_geodes(blueprint_index, time + 1 + child_time, child_resource_counts, updated_robot_counts, max_robot_counts, max_resource_counts, robot_resource_type)
-		# 	all_child_geodes.append(child_geodes)
+			# make recursive call
+			child_geodes = get_max_geodes(blueprint_index, time + 1 + child_time, child_resource_counts, updated_robot_counts, max_robot_counts, max_resource_counts, robot_resource_type)
+			all_child_geodes.append(child_geodes)
 		# TODO END OF TEST ###########################################################################
 
 		result = max(all_child_geodes)
