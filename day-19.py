@@ -46,22 +46,22 @@ def clampT(t1: tuple, t2: tuple):
 
 # determine the next time that a robot could be built based on current robots and resources
 @lru_cache(maxsize=None)
-def time_to_build_robot(robot_cost, updated_resource_counts, updated_robot_counts):
+def time_to_build_robot(robot_cost, resource_counts, robot_counts):
 	# if already have the resources to build robot, return early
-	if lessThanOrEqualT(robot_cost, updated_resource_counts):
+	if lessThanOrEqualT(robot_cost, resource_counts):
 		return 1
 	
 	# check if we have existing robots that can eventually mine us the resources for the new robot
-	required_resource_types = {i for i in range(4) if robot_cost[i] > 0 and robot_cost[i] > updated_resource_counts[i]}
-	obtainable_resource_types = {i for i in range(4) if updated_robot_counts[i] > 0}
+	required_resource_types = {i for i in range(4) if robot_cost[i] > 0 and robot_cost[i] > resource_counts[i]}
+	obtainable_resource_types = {i for i in range(4) if robot_counts[i] > 0}
 	if not required_resource_types.issubset(obtainable_resource_types):
 		return None
 	
 	# TODO likely a cleaner, integer way of doing this without ceiling function
 	# compute how many time steps it will take to acquire enough resources to build the new robot
-	resource_differences = subT(robot_cost, updated_resource_counts)
+	resource_differences = subT(robot_cost, resource_counts)
 	time_deltas = [
-		ceil(resource_differences[required_resource] / updated_robot_counts[required_resource])
+		ceil(resource_differences[required_resource] / robot_counts[required_resource])
 		for required_resource 
 		in required_resource_types
 	]
@@ -85,29 +85,26 @@ def get_max_robot_counts(blueprint):
 # runs logic via DFS queue
 def breadth_first_search(blueprint):
 	# help caching states by maxing number of robots / resources we build / keep
-	MAX_ROBOT_COUNTS = get_max_robot_counts(blueprint)
+	max_robot_counts = get_max_robot_counts(blueprint)
 
 	# tracks most geodes found at each time step
 	# gets compared to the max number of possible remaining geodes to reduce search space
 	# if most geodes at time t is already more than theoretical max, skip searching that branch
-	MOST_GEODES_AT_TIME = {i: 0 for i in range(TOTAL_TIME + 1)}
+	most_geodes_at_time = {i: 0 for i in range(TOTAL_TIME + 1)}
 
 	# initialize resources and robots
 	resource_counts = (0, 0, 0, 0)
 	robot_counts = (0, 0, 0, 1)
-
-	# root state to start from
-	starting_state = (START_TIME, resource_counts, robot_counts, None)
+	starting_state = (START_TIME, resource_counts, robot_counts)
 
 	# actual BFS queue logic
 	best_result = 0
 	queue = deque([starting_state])
 	seen_states = set()
 	while queue:
-		# TODO would probably reduce the state space if build_type was not part of it?
 		# grab next state off queue
 		state = queue.popleft()
-		time, resource_counts, robot_counts, build_type = state
+		time, resource_counts, robot_counts = state
 
 		# continue immediately if we've already seen this state
 		if state in seen_states:
@@ -119,96 +116,76 @@ def breadth_first_search(blueprint):
 		# this assumes you could build one new geode robot at every remaining time step
 		# trim this branch off the search, if it clearly will not beat the current best
 		current_geodes = resource_counts[0]
-		geode_upper_bound = current_geodes + ((TOTAL_TIME - time) * robot_counts[0]) + TRIANGULAR_NUMBERS[TOTAL_TIME - time]
-		if geode_upper_bound < MOST_GEODES_AT_TIME[time]:
+		geode_upper_bound = current_geodes + ((TOTAL_TIME - time - 1) * robot_counts[0]) + TRIANGULAR_NUMBERS[TOTAL_TIME - time]
+		if geode_upper_bound < most_geodes_at_time[time]:
 			continue
-
-		updated_resource_counts = addT(resource_counts, robot_counts)
-	
-		# start building the relevant robot that was planned for this time step
-		# 1. Remove resources to start buiding robot
-		# 2. Collect new resources with existing robots
-		# 3. Add new robot to team of robots
-		if build_type != None:
-			updated_resource_counts = subT(updated_resource_counts, blueprint[build_type])
-			updated_robot_counts = addT(robot_counts, RESOURCE_MASKS[build_type])
-		else:
-			updated_robot_counts = robot_counts
-		
-		# clamp number of resources to a max to reduce number of unique, seen states
-		# TODO don't actually have to do clamp math on the geode 10_000 limit
-		# TODO likely don't need the +1?
-		# TODO cap resources at a max so that we get more cache hits. is this doing anything?
-		# TODO if we do keep this, just precompute at start for all times so that it's a lookup
-		temp_max_resource_counts = tuple(i * (TOTAL_TIME - time) for i in MAX_ROBOT_COUNTS)
-		updated_resource_counts = clampT(updated_resource_counts, temp_max_resource_counts)
-
-		# clamp number of robots to the max we could ever fully utilize (spend resources from)
-		updated_robot_counts = clampT(updated_robot_counts, MAX_ROBOT_COUNTS)
-
-		# save best results up to this point and at this specific time (for caching)
-		best_result = max(best_result, updated_resource_counts[0])
-		MOST_GEODES_AT_TIME[time] = max(MOST_GEODES_AT_TIME[time], updated_resource_counts[0])
-	
-		# TODO testing that we are getting to the correct states (for part 1)
-		# if time == 1 and updated_robot_counts[0] == 0 and updated_resource_counts == (0, 0, 0, 1):
-		if time == 4 and updated_robot_counts == (0, 0, 1, 1) and updated_resource_counts == (0, 0, 1, 2):
-		# TODO not getting here
-		# if time == 8 and updated_robot_counts[0] == 0 and updated_resource_counts == (0, 0, 4, 2):
-		# TODO not getting here
-		# if time == 16 and updated_robot_counts[0] == 0 and updated_resource_counts == (0, 6, 9, 2):
-			print('~~~~~~~' * 10)
-			print(f"Matched state at time: {time}")
-			print(updated_robot_counts)
-			print(updated_resource_counts)
-			print('~~~~~~~' * 10)
-
-		# TODO testing that we are getting to the correct states (for part 2)
-		# if time == 8 and updated_robot_counts[0] == 0 and updated_resource_counts == (0, 0, 1, 3):
-		# if time == 13 and updated_robot_counts[0] == 0 and updated_resource_counts == (0, 0, 21, 3):
-		# TODO we do reach this state successfully
-		# if time == 14 and updated_robot_counts[1] == 1 and updated_resource_counts == (0, 0, 14, 2):
-		# TODO we aren't reaching this, it would be a next state where we choose not to build anything
-		# if time == 15 and updated_robot_counts[0] == 0 and updated_resource_counts == (0, 1, 21, 4):
-		# if time == 25 and updated_robot_counts[0] == 4 and updated_resource_counts == (11, 10, 35, 4):
-			# print('~~~~~~~' * 10)
-			# print(f"Matched state at time: {time}")
-			# print(updated_robot_counts)
-			# print(updated_resource_counts)
-			# print('~~~~~~~' * 10)
 
 		# possible robots that could be built and when
 		robot_build_times = [
 			(
 				robot_resource_type,
-				time_to_build_robot(blueprint[robot_resource_type], updated_resource_counts, updated_robot_counts)
+				time_to_build_robot(blueprint[robot_resource_type], resource_counts, robot_counts)
 			)
 			for robot_resource_type
 			in RESOURCE_MASKS.keys()
-			if updated_robot_counts[RESOURCE_INDICES[robot_resource_type]] < MAX_ROBOT_COUNTS[RESOURCE_INDICES[robot_resource_type]]
+			if robot_counts[RESOURCE_INDICES[robot_resource_type]] < max_robot_counts[RESOURCE_INDICES[robot_resource_type]]
 		]
 
-		can_build_something = False
-		for robot_resource_type, child_time in robot_build_times:
+		if time == 1:
+			print(robot_build_times)
+
+		can_build_something_by_waiting = False
+		for robot_resource_type, child_time_offset in robot_build_times:
 			# if impossible to build the robot type at all or before time's up, continue
 			# if robot built at time 24, it doesn't contribute any mining
-			if child_time == None or time + child_time > TOTAL_TIME - 1:
+			# TODO offset time should start from zero, not one
+			if child_time_offset == None or time + child_time_offset - 1 > TOTAL_TIME - 1:
 				continue
 				
-			# there's a case where we could build something
-			can_build_something = True
+			# we can build something later if we just wait, meaning we should add a new state where we've simply waited this turn
+			can_build_something_by_waiting = True
 
-			# add resources, new robot isn't available to mine resources until ((next time step) + 1)
-			newly_mined_resource_counts = scaleT(updated_robot_counts, child_time - 1)
-			child_resource_counts = addT(updated_resource_counts, newly_mined_resource_counts)
+			# TODO if the child offset is 0, build immediately and go to next state
+			if child_time_offset == 1:
+				# print('Trying to build at time 3:')
+				# print(robot_resource_type)
 
-			# make recursive call
-			queue.append((time + child_time, child_resource_counts, updated_robot_counts, robot_resource_type))
+				child_resource_counts = addT(resource_counts, robot_counts)
+				child_resource_counts = subT(child_resource_counts, blueprint[robot_resource_type])
+				# TODO is clamp needed?
+				temp_max_resource_counts = tuple(i * (TOTAL_TIME - time - 1) for i in max_robot_counts)
+				child_resource_counts = clampT(child_resource_counts, temp_max_resource_counts)
 
-		# TODO queue the state where we build nothing, check that we can build SOMETHING via above loop
-		# TODO this is blowing up the state space
-		# if can_build_something:
-		# 	queue.append((time + 1, updated_resource_counts, updated_robot_counts, None))
+				# add new robot to counts
+				child_robot_counts = addT(robot_counts, RESOURCE_MASKS[robot_resource_type])
+				# TODO is clamp needed?
+				child_robot_counts = clampT(child_robot_counts, max_robot_counts)
+
+				queue.append((time + 1, child_resource_counts, child_robot_counts))
+
+			else:
+				# add resources, new robot isn't available to mine resources until end of this step
+				newly_mined_resource_counts = scaleT(robot_counts, child_time_offset - 1)
+				child_resource_counts = addT(resource_counts, newly_mined_resource_counts)
+				# TODO is clamp needed?
+				temp_max_resource_counts = tuple(i * (TOTAL_TIME - time - 1) for i in max_robot_counts)
+				child_resource_counts = clampT(child_resource_counts, temp_max_resource_counts)
+
+				# add new state to BFS queue
+				if time == 1:
+					print('queuing:')
+					print((time + child_time_offset - 1, child_resource_counts, robot_counts))
+				queue.append((time + child_time_offset - 1, child_resource_counts, robot_counts))
+
+		updated_resource_counts = addT(resource_counts, robot_counts)
+
+		# queue the state where we build nothing, but only if we can evenutally build SOMETHING by waiting
+		if can_build_something_by_waiting:
+			queue.append((time + 1, updated_resource_counts, robot_counts))
+
+		# save best results up to this point and at this specific time (for caching)
+		best_result = max(best_result, updated_resource_counts[0])
+		most_geodes_at_time[time] = max(most_geodes_at_time[time], updated_resource_counts[0])
 
 	return best_result
 
@@ -254,7 +231,6 @@ def process_blueprint(i):
 	result = max_geodes # part 2
 
 	# view cache efficacy (separate processes can't see each others' caches, so no need to clear)
-	# print(f"Max geodes  cache: {get_max_geodes.cache_info()}") 
 	print(f"Robot build cache: {time_to_build_robot.cache_info()}") 
 
 	# measure elapsed time
