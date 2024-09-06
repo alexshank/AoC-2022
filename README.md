@@ -23,5 +23,9 @@ Thoughts, observations, and eurekas for each day.
 - Main issue is reducing the problem space to a reasonable size. Heuristics are necessary, at least from what I can tell (no obvious, optimal solution that is fast).
 - Needed to add profiling with this command: `python3 -m cProfile -s time day-19.py > day-19-profiler-results.txt`
     - Turns out tuples have been very inefficient.
+    - Ultimately, pruning the search space was the only thing that made tangible improvements on execution time.
+- Interestingly, the example input takes an indefinite amount of time to run for part 2. Ran it for ~10 mins before killing.
+    - My solution worked for the actual challenge input though.
+- I needed A LOT of hints and references from the Advent of Code Reddit threads. I would not have solved this without them.
 
 ---

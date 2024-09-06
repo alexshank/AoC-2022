@@ -11,8 +11,8 @@ RESOURCE_INDICES = {'geode': 0, 'obsidian': 1, 'clay': 2, 'ore': 3}
 RESOURCE_TYPES = ['geode', 'obsidian', 'clay', 'ore']
 RESOURCE_MASKS = {'geode': (1, 0, 0, 0), 'obsidian': (0, 1, 0, 0), 'clay': (0, 0, 1, 0), 'ore': (0, 0, 0, 1)}
 START_TIME = 1
-TOTAL_TIME = 24
-# TOTAL_TIME = 32 # part 2
+# TOTAL_TIME = 24
+TOTAL_TIME = 32 # part 2
 
 
 # the triangular numbers for getting geode upper bounds
@@ -92,7 +92,6 @@ def breadth_first_search(blueprint):
 	# help caching states by limiting max number of robots
 	max_robot_counts = get_max_robot_counts(blueprint)
 
-	# TODO should determine these more accurately
 	# help caching states by limiting max number of resources
 	max_resource_usage = {k: tuple(i * (TOTAL_TIME - k) for i in max_robot_counts) for k in range(0, TOTAL_TIME + 1)}
 
@@ -135,8 +134,8 @@ def breadth_first_search(blueprint):
 		# compute absolute upper bound of geodes we could get from this current state
 		# this assumes you could build one new geode robot at every remaining time step
 		# trim this branch off the search, if it clearly will not beat the current best
-		current_geodes = resource_counts[0]
-		geode_upper_bound = current_geodes + ((TOTAL_TIME - time - 1) * robot_counts[0]) + TRIANGULAR_NUMBERS[TOTAL_TIME - time]
+		current_geodes = resource_counts[0] + robot_counts[0]
+		geode_upper_bound = current_geodes + ((TOTAL_TIME - time + 1) * robot_counts[0]) + TRIANGULAR_NUMBERS[TOTAL_TIME - (time + 1)]
 		if geode_upper_bound < most_geodes_at_time[time]:
 			continue
 
@@ -249,8 +248,8 @@ def process_blueprint(i, blueprint):
 	max_geodes = breadth_first_search(blueprint)
 
 	# compute relevant quality metric
-	result = (i + 1) * max_geodes # part 1
-	# result = max_geodes # part 2
+	# result = (i + 1) * max_geodes # part 1
+	result = max_geodes # part 2
 
 	# view cache efficacy
 	print(f"Robot build cache: {time_to_build_robot.cache_info()}") 
@@ -264,27 +263,24 @@ def process_blueprint(i, blueprint):
 	return result
 
 
-# TODO chance we need to find a way to quickly evaulate if we'll NEVER produce a geode
-# TODO somehow find the fastest way we could get to a single geode, maybe?
 if __name__ == "__main__":
 	overall_start_time = time.time()
 	print(f"Start time: {overall_start_time}\n")
 
 	# put blueprints in global namespace so we can cache methods
-	lines = load_data("day-19-test-input.txt")
+	lines = load_data("day-19-input.txt")
 	blueprints = build_blueprint_dictionaries(lines)
-	# blueprints = blueprints[:3] # part 2
-	# blueprints = [blueprints[0]] # TODO testing
+	blueprints = blueprints[:3] # part 2
 	
 	# sum up all the results
 	results = [process_blueprint(i, blueprint) for i, blueprint in enumerate(blueprints)]
-	answer = sum(results)
-	# answer = reduce(mul, results) # part 2
+	# answer = sum(results)
+	answer = reduce(mul, results) # part 2
 
 	# part 1 (answer: 1127)
-	# TODO answer 19656 too low for part 2
-	# part 2: 21, 27, 37 => 20979
-	# part 2 (answer: TODO)
+	# part 2: 21, 27, 37 => 20979 (got this hint by using someone else's solution on my input...)
+	# part 2: 21, 27, 38 => 21546 (turns out their solution wasn't exactly correct for my input though!)
+	# part 2 (answer: 21546)
 	print(f"Answer: {answer}\n")
 
 	# print overall run time
