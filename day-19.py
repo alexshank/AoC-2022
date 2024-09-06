@@ -116,9 +116,15 @@ def breadth_first_search(blueprint):
 	while underlying_heap_list:
 		# grab next state off queue
 		_, state = heapq.heappop(underlying_heap_list)
-		time, resource_counts, robot_counts = state
+
+		# continue immediately if we've already seen this state
+		if state in seen_states:
+			continue
+		else:
+			seen_states.add(state)
 
 		# exit early if end of simulation
+		time, resource_counts, robot_counts = state
 		if time == TOTAL_TIME:
 			# save best results up to this point and at this specific time (for caching)
 			updated_resource_counts = addT(resource_counts, robot_counts)
@@ -126,11 +132,6 @@ def breadth_first_search(blueprint):
 			most_geodes_at_time[time] = max(most_geodes_at_time[time], updated_resource_counts[0])
 			continue
 
-		# continue immediately if we've already seen this state
-		if state in seen_states:
-			continue
-		else:
-			seen_states.add(state)
 
 		# compute absolute upper bound of geodes we could get from this current state
 		# this assumes you could build one new geode robot at every remaining time step
