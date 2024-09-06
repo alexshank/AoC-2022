@@ -12,8 +12,8 @@ RESOURCE_INDICES = {'geode': 0, 'obsidian': 1, 'clay': 2, 'ore': 3}
 RESOURCE_TYPES = ['geode', 'obsidian', 'clay', 'ore']
 RESOURCE_MASKS = {'geode': (1, 0, 0, 0), 'obsidian': (0, 1, 0, 0), 'clay': (0, 0, 1, 0), 'ore': (0, 0, 0, 1)}
 START_TIME = 1
-TOTAL_TIME = 24
-# TOTAL_TIME = 32 # part 2
+# TOTAL_TIME = 24
+TOTAL_TIME = 32 # part 2
 
 
 # the triangular numbers for getting geode upper bounds
@@ -49,7 +49,7 @@ def clampT(t1: tuple, t2: tuple):
 def time_to_build_robot(robot_cost, resource_counts, robot_counts):
 	# if already have the resources to build robot, return early
 	if lessThanOrEqualT(robot_cost, resource_counts):
-		return 1
+		return 0
 	
 	# check if we have existing robots that can eventually mine us the resources for the new robot
 	required_resource_types = {i for i in range(4) if robot_cost[i] > 0 and robot_cost[i] > resource_counts[i]}
@@ -66,7 +66,7 @@ def time_to_build_robot(robot_cost, resource_counts, robot_counts):
 		in required_resource_types
 	]
 
-	return max(time_deltas) + 1
+	return max(time_deltas)
 
 
 def get_max_robot_counts(blueprint):
@@ -106,6 +106,14 @@ def breadth_first_search(blueprint):
 		state = queue.popleft()
 		time, resource_counts, robot_counts = state
 
+		# exit early if end of simulation
+		if time == TOTAL_TIME:
+			# save best results up to this point and at this specific time (for caching)
+			updated_resource_counts = addT(resource_counts, robot_counts)
+			best_result = max(best_result, updated_resource_counts[0])
+			most_geodes_at_time[time] = max(most_geodes_at_time[time], updated_resource_counts[0])
+			continue
+
 		# continue immediately if we've already seen this state
 		if state in seen_states:
 			continue
@@ -131,29 +139,26 @@ def breadth_first_search(blueprint):
 			if robot_counts[RESOURCE_INDICES[robot_resource_type]] < max_robot_counts[RESOURCE_INDICES[robot_resource_type]]
 		]
 
-		if time == 1:
-			print(robot_build_times)
-
 		can_build_something_by_waiting = False
 		for robot_resource_type, child_time_offset in robot_build_times:
 			# if impossible to build the robot type at all or before time's up, continue
 			# if robot built at time 24, it doesn't contribute any mining
 			# TODO offset time should start from zero, not one
-			if child_time_offset == None or time + child_time_offset - 1 > TOTAL_TIME - 1:
+			if child_time_offset == None or time + child_time_offset > TOTAL_TIME:
 				continue
 				
 			# we can build something later if we just wait, meaning we should add a new state where we've simply waited this turn
 			can_build_something_by_waiting = True
 
 			# TODO if the child offset is 0, build immediately and go to next state
-			if child_time_offset == 1:
+			if child_time_offset == 0:
 				# print('Trying to build at time 3:')
 				# print(robot_resource_type)
 
 				child_resource_counts = addT(resource_counts, robot_counts)
 				child_resource_counts = subT(child_resource_counts, blueprint[robot_resource_type])
 				# TODO is clamp needed?
-				temp_max_resource_counts = tuple(i * (TOTAL_TIME - time - 1) for i in max_robot_counts)
+				temp_max_resource_counts = tuple(i * (TOTAL_TIME - time) for i in max_robot_counts)
 				child_resource_counts = clampT(child_resource_counts, temp_max_resource_counts)
 
 				# add new robot to counts
@@ -161,21 +166,29 @@ def breadth_first_search(blueprint):
 				# TODO is clamp needed?
 				child_robot_counts = clampT(child_robot_counts, max_robot_counts)
 
+				# TODO debugging
+				if time == 3 and resource_counts == (0, 0, 0, 2) and robot_counts == (0, 0, 0, 1):
+					print('queuing with immediate build:')
+					print((time + 1, child_resource_counts, child_robot_counts))
+
+				# add new state to BFS queue
 				queue.append((time + 1, child_resource_counts, child_robot_counts))
 
 			else:
 				# add resources, new robot isn't available to mine resources until end of this step
-				newly_mined_resource_counts = scaleT(robot_counts, child_time_offset - 1)
+				newly_mined_resource_counts = scaleT(robot_counts, child_time_offset)
 				child_resource_counts = addT(resource_counts, newly_mined_resource_counts)
 				# TODO is clamp needed?
-				temp_max_resource_counts = tuple(i * (TOTAL_TIME - time - 1) for i in max_robot_counts)
+				temp_max_resource_counts = tuple(i * (TOTAL_TIME - time) for i in max_robot_counts)
 				child_resource_counts = clampT(child_resource_counts, temp_max_resource_counts)
 
+				# TODO debugging
+				if time == 3 and resource_counts == (0, 0, 0, 2) and robot_counts == (0, 0, 0, 1):
+					print('queuing with future build:')
+					print((time + child_time_offset, child_resource_counts, robot_counts))
+
 				# add new state to BFS queue
-				if time == 1:
-					print('queuing:')
-					print((time + child_time_offset - 1, child_resource_counts, robot_counts))
-				queue.append((time + child_time_offset - 1, child_resource_counts, robot_counts))
+				queue.append((time + child_time_offset, child_resource_counts, robot_counts))
 
 		updated_resource_counts = addT(resource_counts, robot_counts)
 
