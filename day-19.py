@@ -12,8 +12,8 @@ RESOURCE_INDICES = {'geode': 0, 'obsidian': 1, 'clay': 2, 'ore': 3}
 RESOURCE_TYPES = ['geode', 'obsidian', 'clay', 'ore']
 RESOURCE_MASKS = {'geode': (1, 0, 0, 0), 'obsidian': (0, 1, 0, 0), 'clay': (0, 0, 1, 0), 'ore': (0, 0, 0, 1)}
 START_TIME = 1
-# TOTAL_TIME = 24
-TOTAL_TIME = 32 # part 2
+TOTAL_TIME = 24
+# TOTAL_TIME = 32 # part 2
 
 
 # the triangular numbers for getting geode upper bounds
@@ -226,10 +226,10 @@ def build_blueprint_dictionaries(lines):
 
 
 # put blueprints in global namespace so we can cache methods
-lines = load_data("day-19-test-input.txt")
+lines = load_data("day-19-input.txt")
 BLUEPRINTS = build_blueprint_dictionaries(lines)
 # BLUEPRINTS = BLUEPRINTS[:3] # part 2
-BLUEPRINTS = [BLUEPRINTS[0]] # TODO testing
+# BLUEPRINTS = [BLUEPRINTS[0]] # TODO testing
 	
 
 def process_blueprint(i):
@@ -240,8 +240,8 @@ def process_blueprint(i):
 	blueprint = BLUEPRINTS[i]
 	max_geodes = breadth_first_search(blueprint)
 
-	# result = (i + 1) * max_geodes # part 1
-	result = max_geodes # part 2
+	result = (i + 1) * max_geodes # part 1
+	# result = max_geodes # part 2
 
 	# view cache efficacy (separate processes can't see each others' caches, so no need to clear)
 	print(f"Robot build cache: {time_to_build_robot.cache_info()}") 
@@ -269,11 +269,10 @@ if __name__ == "__main__":
 		results = pool.map(process_blueprint, range(len(BLUEPRINTS)))
 
 	# sum up all the results
-	# answer = sum(results)
-	answer = reduce(mul, results) # part 2
+	answer = sum(results)
+	# answer = reduce(mul, results) # part 2
 
 	# part 1 (answer: 1127)
-
 	# TODO answer 19656 too low for part 2
 	# part 2 (answer: TODO)
 	print(f"Answer: {answer}")
