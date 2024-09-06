@@ -3,7 +3,6 @@ from math import ceil
 import time
 from functools import lru_cache, reduce
 from operator import mul
-import multiprocessing
 from collections import deque
 
 
@@ -157,13 +156,17 @@ def breadth_first_search(blueprint):
 			if child_time_offset == 0:
 				child_resource_counts = addT(resource_counts, robot_counts)
 				child_resource_counts = subT(child_resource_counts, blueprint[robot_resource_type])
-				# TODO is clamp needed?
-				child_resource_counts = clampT(child_resource_counts, max_resource_counts[time])
 
 				# add new robot to counts
 				child_robot_counts = addT(robot_counts, RESOURCE_MASKS[robot_resource_type])
 				# TODO is clamp needed?
 				child_robot_counts = clampT(child_robot_counts, max_robot_counts)
+
+				# TODO is clamp needed?
+				max_remaining_spend = max_resource_counts[time]
+				remaining_to_gather = scaleT(robot_counts, TOTAL_TIME - (time + 1))
+				clamp_limit = subT(max_remaining_spend, remaining_to_gather)
+				child_resource_counts = clampT(child_resource_counts, clamp_limit)
 
 				# add new state to BFS queue
 				queue.append((time + 1, child_resource_counts, child_robot_counts))
@@ -172,8 +175,12 @@ def breadth_first_search(blueprint):
 				# add resources, new robot isn't available to mine resources until end of this step
 				newly_mined_resource_counts = scaleT(robot_counts, child_time_offset)
 				child_resource_counts = addT(resource_counts, newly_mined_resource_counts)
+
 				# TODO is clamp needed?
-				child_resource_counts = clampT(child_resource_counts, max_resource_counts[time])
+				max_remaining_spend = max_resource_counts[time]
+				remaining_to_gather = scaleT(robot_counts, TOTAL_TIME - (time + 1))
+				clamp_limit = subT(max_remaining_spend, remaining_to_gather)
+				child_resource_counts = clampT(child_resource_counts, clamp_limit)
 
 				# add new state to BFS queue
 				queue.append((time + child_time_offset, child_resource_counts, robot_counts))
@@ -182,7 +189,14 @@ def breadth_first_search(blueprint):
 
 		# queue the state where we build nothing, but only if we can evenutally build SOMETHING by waiting
 		if can_build_something_by_waiting:
-			queue.append((time + 1, updated_resource_counts, robot_counts))
+
+			# TODO is clamp needed?
+			max_remaining_spend = max_resource_counts[time]
+			remaining_to_gather = scaleT(robot_counts, TOTAL_TIME - (time + 1))
+			clamp_limit = subT(max_remaining_spend, remaining_to_gather)
+			child_resource_counts = clampT(updated_resource_counts, clamp_limit)
+
+			queue.append((time + 1, child_resource_counts, robot_counts))
 
 		# save best results up to this point and at this specific time (for caching)
 		best_result = max(best_result, updated_resource_counts[0])
@@ -243,10 +257,10 @@ if __name__ == "__main__":
 	print(f"Start time: {overall_start_time}\n")
 
 	# put blueprints in global namespace so we can cache methods
-	lines = load_data("day-19-test-input.txt")
+	lines = load_data("day-19-input.txt")
 	blueprints = build_blueprint_dictionaries(lines)
 	# BLUEPRINTS = BLUEPRINTS[:3] # part 2
-	blueprints = [blueprints[0]] # TODO testing
+	# blueprints = [blueprints[0]] # TODO testing
 	
 	# sum up all the results
 	results = [process_blueprint(i, blueprint) for i, blueprint in enumerate(blueprints)]
