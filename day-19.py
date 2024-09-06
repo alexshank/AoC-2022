@@ -76,7 +76,6 @@ def time_to_build_robot(robot_cost, resource_counts, robot_counts):
 
 
 def get_max_robot_counts(blueprint):
-	# TODO need to determine these maximums / sums more accurately
 	# find the maximum number of each robot we would ever want
 	# if we can only spend X ore per turn, we would never want X + 1 ore robots
 	# this is the main thing that reduces our search space
@@ -95,7 +94,7 @@ def breadth_first_search(blueprint):
 
 	# TODO should determine these more accurately
 	# help caching states by limiting max number of resources
-	max_resource_counts = {k: tuple(i * (TOTAL_TIME - k) for i in max_robot_counts) for k in range(0, TOTAL_TIME + 1)}
+	max_resource_usage = {k: tuple(i * (TOTAL_TIME - k) for i in max_robot_counts) for k in range(0, TOTAL_TIME + 1)}
 
 	# tracks most geodes found at each time step
 	# gets compared to the max number of possible remaining geodes to reduce search space
@@ -169,7 +168,7 @@ def breadth_first_search(blueprint):
 				child_resource_counts = subT(child_resource_counts, blueprint[robot_resource_type])
 
 				# clamp resources so that we don't track inconsequential states
-				max_remaining_spend = max_resource_counts[time]
+				max_remaining_spend = max_resource_usage[time]
 				remaining_to_gather = scaleT(robot_counts, TOTAL_TIME - (time + 1))
 				clamp_limit = subT(max_remaining_spend, remaining_to_gather)
 				child_resource_counts = clampT(child_resource_counts, clamp_limit)
@@ -189,7 +188,7 @@ def breadth_first_search(blueprint):
 				child_resource_counts = addT(resource_counts, newly_mined_resource_counts)
 
 				# clamp resources so that we don't track inconsequential states
-				max_remaining_spend = max_resource_counts[time]
+				max_remaining_spend = max_resource_usage[time]
 				remaining_to_gather = scaleT(robot_counts, TOTAL_TIME - (time + 1))
 				clamp_limit = subT(max_remaining_spend, remaining_to_gather)
 				child_resource_counts = clampT(child_resource_counts, clamp_limit)
@@ -204,7 +203,7 @@ def breadth_first_search(blueprint):
 		# queue the state where we build nothing, but only if we can evenutally build SOMETHING by waiting
 		if can_build_something_by_waiting:
 			# clamp resources so that we don't track inconsequential states
-			max_remaining_spend = max_resource_counts[time]
+			max_remaining_spend = max_resource_usage[time]
 			remaining_to_gather = scaleT(robot_counts, TOTAL_TIME - (time + 1))
 			clamp_limit = subT(max_remaining_spend, remaining_to_gather)
 			child_resource_counts = clampT(updated_resource_counts, clamp_limit)
@@ -284,6 +283,7 @@ if __name__ == "__main__":
 
 	# part 1 (answer: 1127)
 	# TODO answer 19656 too low for part 2
+	# part 2: 21, 27, 37 => 20979
 	# part 2 (answer: TODO)
 	print(f"Answer: {answer}\n")
 
