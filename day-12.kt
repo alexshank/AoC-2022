@@ -18,6 +18,8 @@ fun main() {
     // part 1 (we know !! is safe here)
     println(breadthFirstSearch(paddedGrid, start, end)!!.size - 1)
 
+    // TODO clever solution: You can just run BFS from the destination and have it terminate
+    // TODO when it reaches ANY square that could have been a start square
     // part 2
     val results = mutableListOf<List<Coord>>()
     for (y in 0 until y_max) {
