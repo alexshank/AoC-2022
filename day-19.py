@@ -158,35 +158,36 @@ def breadth_first_search(blueprint):
 			if child_time_offset == None or time + child_time_offset > TOTAL_TIME:
 				continue
 				
-			# we can build something later if we just wait, meaning we should add a new state where we've simply waited this turn
+			# we could build at least one robot type later by waiting, so we should add a new state where we simply wait this turn
 			can_build_something_by_waiting = True
 
 			# if the child offset is 0, build immediately and go to next state
 			if child_time_offset == 0:
+				# update resources
 				child_resource_counts = addT(resource_counts, robot_counts)
 				child_resource_counts = subT(child_resource_counts, blueprint[robot_resource_type])
 
-				# add new robot to counts
-				child_robot_counts = addT(robot_counts, RESOURCE_MASKS[robot_resource_type])
-				# TODO is clamp needed?
-				child_robot_counts = clampT(child_robot_counts, max_robot_counts)
-
-				# TODO is clamp needed?
+				# clamp resources so that we don't track inconsequential states
 				max_remaining_spend = max_resource_counts[time]
 				remaining_to_gather = scaleT(robot_counts, TOTAL_TIME - (time + 1))
 				clamp_limit = subT(max_remaining_spend, remaining_to_gather)
 				child_resource_counts = clampT(child_resource_counts, clamp_limit)
 
+				# add new robot to counts
+				child_robot_counts = addT(robot_counts, RESOURCE_MASKS[robot_resource_type])
+				child_robot_counts = clampT(child_robot_counts, max_robot_counts)
+
 				# add new state to BFS queue
 				new_state = (time + 1, child_resource_counts, child_robot_counts)
 				heapq.heappush(underlying_heap_list, (state_weight(new_state), new_state))
 
+			# we build the robot at a future time, so just collect resources and queue next state
 			else:
 				# add resources, new robot isn't available to mine resources until end of this step
 				newly_mined_resource_counts = scaleT(robot_counts, child_time_offset)
 				child_resource_counts = addT(resource_counts, newly_mined_resource_counts)
 
-				# TODO is clamp needed?
+				# clamp resources so that we don't track inconsequential states
 				max_remaining_spend = max_resource_counts[time]
 				remaining_to_gather = scaleT(robot_counts, TOTAL_TIME - (time + 1))
 				clamp_limit = subT(max_remaining_spend, remaining_to_gather)
@@ -196,17 +197,18 @@ def breadth_first_search(blueprint):
 				new_state = (time + child_time_offset, child_resource_counts, robot_counts)
 				heapq.heappush(underlying_heap_list, (state_weight(new_state), new_state))
 
+		# collect resources from this turn
 		updated_resource_counts = addT(resource_counts, robot_counts)
 
 		# queue the state where we build nothing, but only if we can evenutally build SOMETHING by waiting
 		if can_build_something_by_waiting:
-
-			# TODO is clamp needed?
+			# clamp resources so that we don't track inconsequential states
 			max_remaining_spend = max_resource_counts[time]
 			remaining_to_gather = scaleT(robot_counts, TOTAL_TIME - (time + 1))
 			clamp_limit = subT(max_remaining_spend, remaining_to_gather)
 			child_resource_counts = clampT(updated_resource_counts, clamp_limit)
 
+			# add new state to BFS queue
 			new_state = (time + 1, child_resource_counts, robot_counts)
 			heapq.heappush(underlying_heap_list, (state_weight(new_state), new_state))
 
