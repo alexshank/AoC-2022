@@ -3,7 +3,7 @@ from math import ceil
 import time
 from functools import lru_cache, reduce
 from operator import mul
-from collections import deque
+import heapq
 
 
 # constants
@@ -19,6 +19,13 @@ TOTAL_TIME = 24
 NATURAL_NUMBERS = [i + 1 for i in range(TOTAL_TIME + 1)]
 TRIANGULAR_NUMBERS = [sum(NATURAL_NUMBERS[:i]) for i in range(1, TOTAL_TIME + 1)]
 
+"""
+min heap to help order our pruning better
+"""
+def state_weight(state):
+	# (-geodes, -obsidian, -clay, remaining_time)
+	time, resource_counts, _ = state
+	return (-resource_counts[0], -resource_counts[1], -resource_counts[2], time)
 
 """
 tuple utility functions
@@ -93,6 +100,7 @@ def breadth_first_search(blueprint):
 	# tracks most geodes found at each time step
 	# gets compared to the max number of possible remaining geodes to reduce search space
 	# if most geodes at time t is already more than theoretical max, skip searching that branch
+	# our heap hopefully surfaces good candidates first, making this a very useful pruning check
 	most_geodes_at_time = {i: 0 for i in range(TOTAL_TIME + 1)}
 
 	# initialize resources and robots
@@ -100,13 +108,14 @@ def breadth_first_search(blueprint):
 	robot_counts = (0, 0, 0, 1)
 	starting_state = (START_TIME, resource_counts, robot_counts)
 
-	# actual BFS queue logic
+	# actual BFS queue logic (and heap for priority queueing)
 	best_result = 0
-	queue = deque([starting_state])
+	underlying_heap_list = []
+	heapq.heappush(underlying_heap_list, (state_weight(starting_state), starting_state))
 	seen_states = set()
-	while queue:
+	while underlying_heap_list:
 		# grab next state off queue
-		state = queue.popleft()
+		_, state = heapq.heappop(underlying_heap_list)
 		time, resource_counts, robot_counts = state
 
 		# exit early if end of simulation
@@ -169,7 +178,8 @@ def breadth_first_search(blueprint):
 				child_resource_counts = clampT(child_resource_counts, clamp_limit)
 
 				# add new state to BFS queue
-				queue.append((time + 1, child_resource_counts, child_robot_counts))
+				new_state = (time + 1, child_resource_counts, child_robot_counts)
+				heapq.heappush(underlying_heap_list, (state_weight(new_state), new_state))
 
 			else:
 				# add resources, new robot isn't available to mine resources until end of this step
@@ -183,7 +193,8 @@ def breadth_first_search(blueprint):
 				child_resource_counts = clampT(child_resource_counts, clamp_limit)
 
 				# add new state to BFS queue
-				queue.append((time + child_time_offset, child_resource_counts, robot_counts))
+				new_state = (time + child_time_offset, child_resource_counts, robot_counts)
+				heapq.heappush(underlying_heap_list, (state_weight(new_state), new_state))
 
 		updated_resource_counts = addT(resource_counts, robot_counts)
 
@@ -196,7 +207,8 @@ def breadth_first_search(blueprint):
 			clamp_limit = subT(max_remaining_spend, remaining_to_gather)
 			child_resource_counts = clampT(updated_resource_counts, clamp_limit)
 
-			queue.append((time + 1, child_resource_counts, robot_counts))
+			new_state = (time + 1, child_resource_counts, robot_counts)
+			heapq.heappush(underlying_heap_list, (state_weight(new_state), new_state))
 
 		# save best results up to this point and at this specific time (for caching)
 		best_result = max(best_result, updated_resource_counts[0])
@@ -259,7 +271,7 @@ if __name__ == "__main__":
 	# put blueprints in global namespace so we can cache methods
 	lines = load_data("day-19-input.txt")
 	blueprints = build_blueprint_dictionaries(lines)
-	# BLUEPRINTS = BLUEPRINTS[:3] # part 2
+	# blueprints = blueprints[:3] # part 2
 	# blueprints = [blueprints[0]] # TODO testing
 	
 	# sum up all the results
