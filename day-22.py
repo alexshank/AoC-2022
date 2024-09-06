@@ -1,6 +1,12 @@
 from helpers import load_data_grouped
 from visualize import pc
-import time
+
+MOVEMENT_MASKS = {
+	'U': 0 + 1j,
+	'D': 0 - 1j,
+	'L': -1 + 0j,
+	'R': 1 + 0j
+}
 
 SIDES = {
 	0: (50, 99, 150, 199),
@@ -11,7 +17,73 @@ SIDES = {
 	5: (0, 49, 0, 49)
 }
 
+SIDE_LENGTH = 50
 
+def orient_right(relative_coord, x_coord):
+	return complex(x_coord % SIDE_LENGTH, SIDE_LENGTH - relative_coord.real - 1)
+
+def orient_left(relative_coord, y_coord):
+	return complex(SIDE_LENGTH - relative_coord.imag - 1, y_coord % SIDE_LENGTH)
+
+def orient_flip(relative_coord, x_coord):
+	return complex(x_coord % SIDE_LENGTH, SIDE_LENGTH - relative_coord.imag - 1)
+
+def translate_1_to_5(relative_coord, garbage):
+	return complex(relative_coord.real % SIDE_LENGTH, 0)
+
+def translate_5_to_1(relative_coord, garbage):
+	return complex(relative_coord.real, SIDE_LENGTH - 1)
+
+# if we go from side k to side j, find out what transition we need to make
+transition_matrix = {
+	# TODO could use partial function application here :)
+	(0, 4): (orient_flip, 2, SIDES[4][0]), # flip orientation, increment direction index twice, use side 4 x_min
+	(0, 5): (orient_right, 1, SIDES[5][0]),
+
+	(1, 2): (orient_right, 1, SIDES[2][1]),
+	(1, 3): (orient_flip, 2, SIDES[3][1]),
+
+	(2, 1): (orient_left, -1, SIDES[1][2]),
+	(2, 4): (orient_left, -1, SIDES[4][3]),
+
+	(3, 1): (orient_flip, 2, SIDES[1][1]),
+	(3, 5): (orient_right, 1, SIDES[5][1]),
+
+	(4, 0): (orient_flip, 2, SIDES[0][0]),
+	(4, 2): (orient_right, 1, SIDES[2][0]),
+
+	(5, 0): (orient_left, -1, SIDES[0][3]),
+	(5, 3): (orient_left, -1, SIDES[3][2]),
+
+	# special cases?
+	(1, 5): (translate_1_to_5, 0, None),
+	(5, 1): (translate_5_to_1, 0, None)
+}
+
+# keep track of sides you transition to going out of current square left, up, right, or down
+SIDE_TO_SIDE = {
+	0: [4, 5, 1, 2],
+	1: [0, 5, 3, 2],
+	2: [4, 0, 1, 3],
+	3: [4, 2, 1, 5],
+	4: [0, 2, 3, 5],
+	5: [0, 4, 3, 1],
+}
+
+def compute_destination_side(candidate_relative_coord, current_side):
+	print(f'candidate rel: {candidate_relative_coord} : {current_side}')
+	if candidate_relative_coord.real < 0:
+		return SIDE_TO_SIDE[current_side][0]
+	elif candidate_relative_coord.real == SIDE_LENGTH:
+		return SIDE_TO_SIDE[current_side][2]
+	elif candidate_relative_coord.imag < 0:
+		return SIDE_TO_SIDE[current_side][3]
+	elif candidate_relative_coord.imag == SIDE_LENGTH:
+		return SIDE_TO_SIDE[current_side][1]
+	else:
+		return current_side
+
+# TODO could cache this computation
 def compute_limits(board, x, y):
 	row_keys = {key for key in board.keys() if key.imag == y}
 	col_keys = {key for key in board.keys() if key.real == x}
@@ -23,42 +95,50 @@ def compute_limits(board, x, y):
 
 	return min_x, max_x, min_y, max_y
 
-def can_move_again(board, direction, current_location):
+def get_new_rel_location(abs_coord, side):
+	return complex(abs_coord.real - SIDES[side][0], abs_coord.imag - SIDES[side][2],)
+
+def can_move_again(board, direction, current_abs_location, current_side, relative_location, direction_index):
 	
-	limits = compute_limits(board, current_location.real, current_location.imag)
+	print(f'current abs: {current_abs_location}')
+	print(f'direction: {direction}')
+	print(f'current side: {current_side}')
+	print(f'relative loc: {relative_location}')
+	print(f'direction index: {direction_index}')
 
-	# print(current_location)
-	# print(limits)
-	match direction:
-		case 'R':
-			test_location = current_location + complex(1, 0)
-			if test_location.real > limits[1]:
-				test_location = complex(limits[0], test_location.imag)
-		
-		case 'L':
-			test_location = current_location + complex(-1, 0)
-			if test_location.real < limits[0]:
-				test_location = complex(limits[1], test_location.imag)
+	test_relative_location = relative_location + MOVEMENT_MASKS[direction]
 
-		case 'U':
-			test_location = current_location + complex(0, 1)
-			if test_location.imag > limits[3]:
-				test_location = complex(test_location.real, limits[2])
+	test_destination_side = compute_destination_side(test_relative_location, current_side)
+	print(f'test destination side: {test_destination_side}')
 
-		case 'D':
-			test_location = current_location + complex(0, -1)
-			if test_location.imag < limits[2]:
-				test_location = complex(test_location.real, limits[3])
-		case _:
-			raise Exception()
+	print(f'tuple: {(current_side, test_destination_side)}')
 
-	if board[test_location] == '.':
-		return test_location
-	elif board[test_location] == '#':
-		return current_location
+	if (current_side, test_destination_side) not in transition_matrix:
+		# no transformation needed
+		direction_increment = 0
+		test_transformed_relative_location = get_new_rel_location(current_abs_location + MOVEMENT_MASKS[direction], test_destination_side)
+
+		print(f'Going from/to {(current_side, test_destination_side)} without transformation')
 	else:
-		print('DANGER')
-		return None	
+		print(f'Going from/to {(current_side, test_destination_side)}')
+		orient_func, direction_increment, orient_arg_1 = transition_matrix[(current_side, test_destination_side)]
+		print(f'orient func: {orient_func}')
+		print(f'direction_increment: {direction_increment}')
+		print(f'orient arg 1: {orient_arg_1}')
+		test_transformed_relative_location = orient_func(test_relative_location, orient_arg_1)
+
+	test_abs_location = complex(SIDES[test_destination_side][0], SIDES[test_destination_side][2])
+	test_abs_location = test_abs_location + test_transformed_relative_location
+
+	print(test_abs_location)
+	print('-----')
+
+	if board[test_abs_location] == '.':
+		return test_abs_location, test_transformed_relative_location, direction_index + direction_increment, test_destination_side
+	elif board[test_abs_location] == '#':
+		return current_abs_location, relative_location, direction_index, current_side
+	else:
+		raise Exception('no bueno')
 
 def in_range(complex_point, limits):
 	result = True
@@ -68,18 +148,7 @@ def in_range(complex_point, limits):
 	result = result and complex_point.imag <= limits[3]
 	return result
 
-# TODO implement
-# TODO end_loc is from part 1's 
-def teleport_and_orient(start_loc, direction, current_side, side_to_side_mapping):
-
-	# TODO can assert that the start_loc is on some kind of x or y boundary
-
-	# TODO probably just need to update either x or y to a new boundary? maybe both in some cases?
-
-	# TODO translate the point to new side, update direction (absolute direction from unfolded board)
-	pass
-
-def print_board(x_board, current_location, arrow, side_number = 0):
+def print_board(x_board, current_location, arrow, side_number):
 	min_x = int(min(x_board.keys(), key=lambda x: x.real).real)
 	max_x = int(max(x_board.keys(), key=lambda x: x.real).real)
 	min_y = int(min(x_board.keys(), key=lambda x: x.imag).imag)
@@ -89,18 +158,20 @@ def print_board(x_board, current_location, arrow, side_number = 0):
 	# min_y = max(min_y, int(current_location.imag) - 20)
 	# max_y = min(max_y, int(current_location.imag) + 20)
 
+	print(f'current location while printing board: {current_location}')
 	for y in reversed(range(min_y, max_y + 1)):
 		print(f'{(max_y - y + 1):03} {y:03}', end='')
 		for x in range(min_x - 1, max_x + 1):
-			if in_range(complex(x, y), SIDES[side_number]):
-				pc(x_board[complex(x, y)], 'blue', end='')
-			elif complex(x, y) == current_location:
+			if complex(x, y) == current_location:
 				pc(arrow, 'green', end='')
+			elif in_range(complex(x, y), SIDES[side_number]):
+				pc(x_board[complex(x, y)], 'blue', end='')
 			elif complex(x, y) in x_board.keys():
 				pc(x_board[complex(x, y)], 'yellow', end='')
 			else:
 				print(' ', end='')
 		print()
+
 
 if __name__ == "__main__":
 	data, instructions = load_data_grouped("day-22-input.txt")
@@ -116,13 +187,7 @@ if __name__ == "__main__":
 			if data[data_y_index][x] != ' ':
 				board[complex(x, y)] = data[data_y_index][x]
 
-	masks = {
-		'U': 0 + 1j,
-		'D': 0 - 1j,
-		'L': -1 + 0j,
-		'R': 1 + 0j
-	}
-
+	# parse instructions in to ['R42', 'L43', ...]
 	results = ['R' + instructions[:2]]
 	instructions = instructions[2:]
 	previous_index = 0
@@ -135,17 +200,20 @@ if __name__ == "__main__":
 	# TODO move into function (used in compute... function above)
 	y_max = max(board.keys(), key=lambda x: x.imag).imag
 	x_min = min({x for x in board.keys() if x.imag == y_max}, key=lambda x: x.real).real
-	current_location = complex(x_min, y_max)
+	current_abs_location = complex(x_min, y_max)
+	print(current_abs_location)
 
-	direction_index = -1 # initialize based on known input
+	# TODO also maintain relative position
+	current_side = 0
+	relative_location = complex(0, SIDE_LENGTH - 1)
+
+	display_board = board.copy()
+
+
+	direction_index = -1 # initialize to U since first instruction is to turn to R
 	directions = ['R', 'D', 'L', 'U']
 	arrows = ['>', 'V', '<', '^']
-	display_board = board.copy()
-	for instruction in results:
-
-		break
-
-
+	for counter, instruction in enumerate(results):
 
 		temp = list(instruction)
 		direction = temp[0]
@@ -156,24 +224,30 @@ if __name__ == "__main__":
 		steps = int(''.join(temp[1:]))
 
 		for i in range(steps):
-			display_board[current_location] = arrows[direction_index % 4]
-			new_position = can_move_again(board, directions[direction_index % 4], current_location)
-			if new_position == current_location:
+			display_board[current_abs_location] = arrows[direction_index % 4]
+
+			# TODO may need to get back the new direction index and current side
+			new_abs_position, new_rel_position, new_direction_index, new_side = can_move_again(board, directions[direction_index % 4], current_abs_location, current_side, relative_location, direction_index)
+			if new_abs_position == current_abs_location:
 				break
 			else:
-				current_location = new_position
+				current_abs_location = new_abs_position
+				relative_location = new_rel_position
+				direction_index = new_direction_index
+				current_side = new_side
+			
+		# print_board(display_board, current_abs_location, arrows[direction_index % 4], current_side)
 
-			# TODO windowing / visualization probably not relevant now
-			# print_board(display_board, current_location, arrows[direction_index % 4])
-			# time.sleep(0.1)
-			# print("\033[J", end="")
-			# print()
-		
-	print_board(display_board, current_location, arrows[direction_index % 4], 5)
+		# if counter == 600:
+		# 	break
 
-	# TODO should have called direction_index direction_counter
+
+	# TODO use the nice printing function for an animation
+	# TODO make solution generic so both part 1 and part 2 can be solved
+	
 	# part 1 (answer: 165094)
-	print(int(1000 * (row_count - (current_location.imag)) + 4 * (current_location.real + 1) + (direction_index % 4)))
+	# part 2 (answer: 95316)
+	print(int(1000 * (row_count - (current_abs_location.imag)) + 4 * (current_abs_location.real + 1) + (direction_index % 4)))
 
 
 
