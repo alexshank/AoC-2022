@@ -272,7 +272,7 @@ if __name__ == "__main__":
 	print(f"Start time: {overall_start_time}\n")
 
 	# put blueprints in global namespace so we can cache methods
-	lines = load_data("day-19-input.txt")
+	lines = load_data("day-19-test-input.txt")
 	blueprints = build_blueprint_dictionaries(lines)
 	# blueprints = blueprints[:3] # part 2
 	# blueprints = [blueprints[0]] # TODO testing
