@@ -7,7 +7,7 @@ import multiprocessing
 from collections import deque
 
 
-# TODO could make more efficient with an array data structure?
+# constants
 RESOURCE_INDICES = {'geode': 0, 'obsidian': 1, 'clay': 2, 'ore': 3}
 RESOURCE_TYPES = ['geode', 'obsidian', 'clay', 'ore']
 RESOURCE_MASKS = {'geode': (1, 0, 0, 0), 'obsidian': (0, 1, 0, 0), 'clay': (0, 0, 1, 0), 'ore': (0, 0, 0, 1)}
@@ -87,6 +87,7 @@ def breadth_first_search(blueprint):
 	# help caching states by limiting max number of robots
 	max_robot_counts = get_max_robot_counts(blueprint)
 
+	# TODO should determine these more accurately
 	# help caching states by limiting max number of resources
 	max_resource_counts = {k: tuple(i * (TOTAL_TIME - k) for i in max_robot_counts) for k in range(0, TOTAL_TIME + 1)}
 
@@ -146,18 +147,14 @@ def breadth_first_search(blueprint):
 		for robot_resource_type, child_time_offset in robot_build_times:
 			# if impossible to build the robot type at all or before time's up, continue
 			# if robot built at time 24, it doesn't contribute any mining
-			# TODO offset time should start from zero, not one
 			if child_time_offset == None or time + child_time_offset > TOTAL_TIME:
 				continue
 				
 			# we can build something later if we just wait, meaning we should add a new state where we've simply waited this turn
 			can_build_something_by_waiting = True
 
-			# TODO if the child offset is 0, build immediately and go to next state
+			# if the child offset is 0, build immediately and go to next state
 			if child_time_offset == 0:
-				# print('Trying to build at time 3:')
-				# print(robot_resource_type)
-
 				child_resource_counts = addT(resource_counts, robot_counts)
 				child_resource_counts = subT(child_resource_counts, blueprint[robot_resource_type])
 				# TODO is clamp needed?
@@ -168,11 +165,6 @@ def breadth_first_search(blueprint):
 				# TODO is clamp needed?
 				child_robot_counts = clampT(child_robot_counts, max_robot_counts)
 
-				# TODO debugging
-				# if time == 3 and resource_counts == (0, 0, 0, 2) and robot_counts == (0, 0, 0, 1):
-				# 	print('queuing with immediate build:')
-				# 	print((time + 1, child_resource_counts, child_robot_counts))
-
 				# add new state to BFS queue
 				queue.append((time + 1, child_resource_counts, child_robot_counts))
 
@@ -182,11 +174,6 @@ def breadth_first_search(blueprint):
 				child_resource_counts = addT(resource_counts, newly_mined_resource_counts)
 				# TODO is clamp needed?
 				child_resource_counts = clampT(child_resource_counts, max_resource_counts[time])
-
-				# TODO debugging
-				# if time == 3 and resource_counts == (0, 0, 0, 2) and robot_counts == (0, 0, 0, 1):
-				# 	print('queuing with future build:')
-				# 	print((time + child_time_offset, child_resource_counts, robot_counts))
 
 				# add new state to BFS queue
 				queue.append((time + child_time_offset, child_resource_counts, robot_counts))
@@ -226,60 +213,53 @@ def build_blueprint_dictionaries(lines):
 	return blueprints
 
 
-# put blueprints in global namespace so we can cache methods
-lines = load_data("day-19-input.txt")
-BLUEPRINTS = build_blueprint_dictionaries(lines)
-# BLUEPRINTS = BLUEPRINTS[:3] # part 2
-# BLUEPRINTS = [BLUEPRINTS[0]] # TODO testing
-	
-
-def process_blueprint(i):
+def process_blueprint(i, blueprint):
 	start_time = time.time()
-	print(f"Blueprint {i + 1} of {len(BLUEPRINTS)}.")
+	print(f"Blueprint {i + 1}:")
 
 	# get max geodes that the blueprint could produce from simulation start
-	blueprint = BLUEPRINTS[i]
 	max_geodes = breadth_first_search(blueprint)
 
+	# compute relevant quality metric
 	result = (i + 1) * max_geodes # part 1
 	# result = max_geodes # part 2
 
-	# view cache efficacy (separate processes can't see each others' caches, so no need to clear)
+	# view cache efficacy
 	print(f"Robot build cache: {time_to_build_robot.cache_info()}") 
 
-	# measure elapsed time
+	# measure elapsed time for this blueprint
 	end_time = time.time()
 	elapsed_time = end_time - start_time
-	print(f"Elapsed time for blueprint {i + 1}: {elapsed_time} seconds.")
-	print(f"Result for blueprint {i + 1}: {result}")
-	print()
+	print(f"Elapsed time: {elapsed_time} seconds.")
+	print(f"Result: {result}\n")
+
 	return result
 
 
+# TODO chance we need to find a way to quickly evaulate if we'll NEVER produce a geode
+# TODO somehow find the fastest way we could get to a single geode, maybe?
 if __name__ == "__main__":
 	overall_start_time = time.time()
-	print(f"Start time: {overall_start_time}")
-	print()
+	print(f"Start time: {overall_start_time}\n")
 
-	# TODO remove this, we should not need multiprocessing for a problem of this size
-	# determine the number of available cores
-	num_cores = multiprocessing.cpu_count()
-
-	# delegate to a pool of workers
-	with multiprocessing.Pool(processes=num_cores) as pool:
-		results = pool.map(process_blueprint, range(len(BLUEPRINTS)))
-
+	# put blueprints in global namespace so we can cache methods
+	lines = load_data("day-19-test-input.txt")
+	blueprints = build_blueprint_dictionaries(lines)
+	# BLUEPRINTS = BLUEPRINTS[:3] # part 2
+	blueprints = [blueprints[0]] # TODO testing
+	
 	# sum up all the results
+	results = [process_blueprint(i, blueprint) for i, blueprint in enumerate(blueprints)]
 	answer = sum(results)
 	# answer = reduce(mul, results) # part 2
 
 	# part 1 (answer: 1127)
 	# TODO answer 19656 too low for part 2
 	# part 2 (answer: TODO)
-	print(f"Answer: {answer}")
-	print()
+	print(f"Answer: {answer}\n")
 
+	# print overall run time
 	overall_end_time = time.time()
 	overall_elapsed_time = overall_end_time - overall_start_time
-	print(f"Total elapsed time: {overall_elapsed_time} seconds.")
+	print(f"Total elapsed time: {overall_elapsed_time} seconds.\n")
 
